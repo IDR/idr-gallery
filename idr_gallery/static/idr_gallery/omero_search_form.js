@@ -133,18 +133,23 @@ function mapNames(rsp, type, key, searchTerm, operator) {
   });
 }
 
-function autocompleteSort(queryVal, knownKeys = []) {
+function autocompleteSort(key, queryVal, knownKeys = []) {
   // returns a sort function based on the current query Value
   // knownKeys is list of common keys e.g. ["Gene Symbol", "Antibody"] etc.
 
   queryVal = queryVal.toLowerCase();
   // const KNOWN_KEYS = [].concat(...Object.values(this.resources_data));
   return (a, b) => {
-    // if exact match, show first
+    // if exact match key or value, show first
     let aMatch = queryVal == a.Value.toLowerCase();
     let bMatch = queryVal == b.Value.toLowerCase();
     if (aMatch != bMatch) {
       return aMatch ? -1 : 1;
+    }
+    let aMatchKey = key == a.Key;
+    let bMatchKey = key == b.Key;
+    if (aMatchKey != bMatchKey) {
+      return aMatchKey ? -1 : 1;
     }
     // show all known Keys before unknown
     let aKnown = knownKeys.includes(a.Key);
@@ -159,22 +164,18 @@ function autocompleteSort(queryVal, knownKeys = []) {
 
 async function getAutoCompleteResults(key, query, knownKeys, operator) {
   let params = { value: query };
-  if (key != "Any") {
-    params.key = key;
-  }
   params = new URLSearchParams(params).toString();
   let kvp_url = `${SEARCH_ENGINE_URL}resources/all/searchvalues/?` + params;
   let urls = [kvp_url];
 
-  if (key == "Any" || key == "description" || key == NAME_KEY) {
-    // Need to load data from 2 end-points
-    let names_url = `${SEARCH_ENGINE_URL}resources/all/names/?value=${query}`;
-    // NB: Don't show auto-complete for Description yet - issues with 'equals' search
-    // if (key == "Any" || key == "description") {
-    //   names_url += `&use_description=true`;
-    // }
-    urls.push(names_url);
-  }
+  // We always check for Names...
+  // Need to load data from 2 end-points
+  let names_url = `${SEARCH_ENGINE_URL}resources/all/names/?value=${query}`;
+  // NB: Don't show auto-complete for Description yet - issues with 'equals' search
+  // if (key == "Any" || key == "description") {
+  //   names_url += `&use_description=true`;
+  // }
+  urls.push(names_url);
 
   const promises = urls.map((p) => fetch(p).then((rsp) => rsp.json()));
   const responses = await Promise.all(promises);
@@ -211,7 +212,7 @@ async function getAutoCompleteResults(key, query, knownKeys, operator) {
   });
   let data_results = [].concat(Object.values(projectScreenHits), imageHits);
   // sort to put exact and 'known' matches first
-  data_results.sort(autocompleteSort(query, knownKeys));
+  data_results.sort(autocompleteSort(key, query, knownKeys));
 
   results = data_results.map((result) => {
     let type = result.type;
@@ -567,14 +568,12 @@ class OmeroSearchForm {
             // Ignore 'No results found'
             return false;
           }
-          if (key == "Any") {
-            // Use 'key' to update KeyField
-            self.setKeyField($orClause, ui.item.key, ui.item.dtype);
-          } else {
-            const operator =
-              ui.item.operator == "contains" ? "contains" : "equals";
-            self.setOperator($orClause, operator);
-          }
+          // Use 'key' and 'operator' to update form
+          self.setKeyField($orClause, ui.item.key, ui.item.dtype);
+          const operator =
+            ui.item.operator == "contains" ? "contains" : "equals";
+          self.setOperator($orClause, operator);
+
           // We perform search with chosen value...
           setTimeout(() => {
             // wait for UI to update!
