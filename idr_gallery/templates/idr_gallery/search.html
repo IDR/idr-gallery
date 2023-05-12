@@ -60,6 +60,8 @@
   }
 </style>
 
+<script src="{% static 'idr_gallery/jsonurl.js' %}?_={{VERSION}}"></script>
+
 <link rel="stylesheet" href="{% static 'idr_gallery/css/search_form_styles.css' %}?_={{VERSION}}" />
 
 <div class="row column">
@@ -127,6 +129,7 @@
 
 <script>
   const searchForm = new OmeroSearchForm("search_form", SEARCH_ENGINE_URL, "results");
+  const SEARCH_PARAM = "q";
 
   // custom handling of search results, not handled by OmeroSearchForm
   searchForm.on("results", function(event, data) {
@@ -143,34 +146,37 @@
 
   searchForm.on("form_updated", function(event, data) {
     // Update URL, adding to browser's history
-    let search_query = searchForm.getCurrentQuery();
-    // for now, we only support the first AND clause...
-    const clause = search_query.query_details.and_filters[0];
-    let params = new URLSearchParams();
-    params.append("key", clause.name);
-    params.append("value", clause.value);
-    params.append("operator", clause.operator);
-    params.append("resource", clause.resource);
-    history.pushState(null, "", "?" + params.toString());
+    let formJson = searchForm.toJSON();
+    let url = "?";
+    // AQF = Addressbar Querystring Friendly: https://github.com/jsonurl/jsonurl-js
+    url += (SEARCH_PARAM + "=" + JsonURL.stringify(formJson.clauses, {AQF: true}));
+    history.pushState(null, "", url);
   });
 
 
   function searchFromUrl() {
+    // always show Advanced form
+    searchForm.setAdvanced(true);
     const searchParams = new URLSearchParams(window.location.search);
-    let key = searchParams.get("key");
-    let value = searchParams.get("value");
-    let resource = searchParams.get("resource") || "image";
-    if (key && value) {
-      let operator = searchParams.get("operator") || "equals";
-      searchForm.setKeyValueQuery({key, value, operator, resource});
+    let query = searchParams.get(SEARCH_PARAM);
+    if (query) {
+      // query contains whitespaces etc - not suitable for JsonURL.parse()
+      // we need to turn it back into query string!
+      let params = new URLSearchParams()
+      params.append('q', query);
+      // we know this string will ONLY contain q=... (safer than using window.location.search)
+      query = params.toString().replace("q=", "");
+      searchForm.fromJSON({clauses: JsonURL.parse(query, {AQF: true})})
       searchForm.submitSearch();
-    }
-    // 'hidden' support for ?advanced=true to show AND/OR buttons
-    let advanced = searchParams.get("advanced");
-    if (advanced) {
-      searchForm.setAdvanced(true);
     } else {
-      searchForm.setAdvanced(false);
+      let key = searchParams.get("key");
+      let value = searchParams.get("value");
+      let resource = searchParams.get("resource") || "image";
+      if (key && value) {
+        let operator = searchParams.get("operator") || "equals";
+        searchForm.setKeyValueQuery({key, value, operator, resource});
+        searchForm.submitSearch();
+      }
     }
   }
 

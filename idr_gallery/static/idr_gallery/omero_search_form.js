@@ -451,6 +451,52 @@ class OmeroSearchForm {
     return query;
   }
 
+  toJSON() {
+    // This returns a JSON representation of the form (preserving order etc)
+    let clauses = [];
+    let queryandnodes = document.querySelectorAll(`#${this.formId} .and_clause`);
+    for (let i = 0; i < queryandnodes.length; i++) {
+      let node = queryandnodes[i];
+      // handle each OR...
+      let ors = node.querySelectorAll(".or_clause");
+
+      let or_dicts = [...ors].map((orNode) => {
+        return {
+          key: orNode.querySelector(".keyFields").value,
+          value: orNode.querySelector(".valueFields").value,
+          operator: orNode.querySelector(".condition").value,
+          resource: this.findResourceForKey(
+            orNode.querySelector(".keyFields").value
+          ),
+        };
+      });
+      if (or_dicts.length > 1) {
+        clauses.push(or_dicts);
+      } else {
+        clauses.push(or_dicts[0]);
+      }
+    }
+    return {clauses: clauses};
+  }
+
+  fromJSON(jsonQuery) {
+    console.log("fromJSON", jsonQuery)
+    // set complete state of form - opposite of toJSON()
+    // document.getElementById("case_sensitive").checked = case_sensitive;
+    // Clear form and create new...
+    $(".clauses", this.$form).empty();
+    jsonQuery.clauses.forEach((clause) => {
+      if (!Array.isArray(clause)) {
+        this.addAnd(clause);
+      } else {
+        let $clause = this.addAnd(clause[0]);
+        clause.slice(1).forEach((or) => {
+          this.addOr($clause, or);
+        });
+      }
+    });
+  }
+
   getHumanReadableQuery() {
     // E.g. "Antibody equals seh1-fl antibody AND (Gene Symbol equals cdc42 OR Gene Symbol equals cdc25c)"
     let query = this.getCurrentQuery();
