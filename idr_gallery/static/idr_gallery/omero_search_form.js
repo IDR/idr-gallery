@@ -454,7 +454,9 @@ class OmeroSearchForm {
   toJSON() {
     // This returns a JSON representation of the form (preserving order etc)
     let clauses = [];
-    let queryandnodes = document.querySelectorAll(`#${this.formId} .and_clause`);
+    let queryandnodes = document.querySelectorAll(
+      `#${this.formId} .and_clause`
+    );
     for (let i = 0; i < queryandnodes.length; i++) {
       let node = queryandnodes[i];
       // handle each OR...
@@ -476,11 +478,11 @@ class OmeroSearchForm {
         clauses.push(or_dicts[0]);
       }
     }
-    return {clauses: clauses};
+    return { clauses: clauses };
   }
 
   fromJSON(jsonQuery) {
-    console.log("fromJSON", jsonQuery)
+    console.log("fromJSON", jsonQuery);
     // set complete state of form - opposite of toJSON()
     // document.getElementById("case_sensitive").checked = case_sensitive;
     // Clear form and create new...
