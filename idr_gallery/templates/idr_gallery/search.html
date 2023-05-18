@@ -48,6 +48,31 @@
     clear: right;
   }
 
+  #query_json {
+    position: relative;
+  }
+  #query_json code {
+    font-size: 10px;
+  }
+  #query_json pre {
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+  }
+  #query_json button {
+    float: right;
+    margin: 0;
+    padding: 6px;
+    border-radius: 8px;
+    font-size: 13px !important;
+    top: -50px;
+    right: 5px;
+    position: absolute;
+  }
+  .hidden pre {
+    display: none;
+  }
+
   /* 'Search' button hidden for now */
   button[type='submit'] {
     display: none;
@@ -86,6 +111,12 @@
 
       <form id="search_form">
       </form>
+
+      <div id="query_json" class="hidden">
+        <button title="Show JSON used to query the search-engine" 
+          class="hollow button secondary small round" href="#">Query JSON</button>
+        <pre><code></code></pre>
+      </div>
 
       <div id="filterCount" class="row horizontal text-center">
         <!-- results message here -->
@@ -131,9 +162,14 @@
   const searchForm = new OmeroSearchForm("search_form", SEARCH_ENGINE_URL, "results");
   const SEARCH_PARAM = "q";
 
+  function updateQueryPanel() {
+    // Also show the form JSON query
+    let jsonData = searchForm.getCurrentQuery();
+    $("#query_json code").text(JSON.stringify(jsonData, null, 2));
+  }
+
   // custom handling of search results, not handled by OmeroSearchForm
   searchForm.on("results", function(event, data) {
-    console.log("on.results", event, data);
     let studiesList = data.results?.results || [];
     let imgCount = studiesList.reduce((prev, study) => prev += study["image count"], 0);
     let studies = studiesList.length === 1 ? DISPLAY_TYPES[studiesList[0].type] : 'experiments/screens';
@@ -151,6 +187,12 @@
     // AQF = Addressbar Querystring Friendly: https://github.com/jsonurl/jsonurl-js
     url += (SEARCH_PARAM + "=" + JsonURL.stringify(formJson.clauses, {AQF: true}));
     history.pushState(null, "", url);
+
+    updateQueryPanel();
+  });
+
+  $("#query_json button").on("click", function() {
+    $("#query_json").toggleClass("hidden");
   });
 
 
@@ -178,6 +220,7 @@
         searchForm.submitSearch();
       }
     }
+    updateQueryPanel();
   }
 
 
@@ -187,7 +230,6 @@
 
 
   window.onpopstate = (event) => {
-    console.log(`onpopstate location: ${document.location}, state: ${JSON.stringify(event.state)}`)
     searchFromUrl();
   }
 

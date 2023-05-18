@@ -24,14 +24,14 @@ const AND_CLAUSE_HTML = `
         </button>
     </div>
   </div>
-  <button type="button" class="addOR" href="#" title="Add OR condition to the group">
+  <button type="button" class="addOR button info small round" href="#" title="Add OR condition to the group">
     add 'OR'...
   </button>
 </div>`;
 
 const FORM_FOOTER_HTML = `
 <div>
-<button id="addAND" type="button" class="no-border" title="Add an 'AND' clause to the query">
+<button id="addAND" type="button" class="button info small round" title="Add an 'AND' clause to the query">
   add AND...
 </button>
 <label class="form-check-label" for="case_sensitive">
@@ -1026,6 +1026,7 @@ class OmeroSearchForm {
       event.preventDefault();
       let $orClause = $(event.target).closest(".or_clause");
       this.removeOr($orClause);
+      this.formUpdated();
     });
 
     this.$form.on("change", ".keyFields", (event) => {
