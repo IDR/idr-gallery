@@ -287,9 +287,11 @@
   // util function
   function setEnabled(selector, enabled) {
     if (enabled) {
-      $(selector).removeClass("disabled");
+      $(selector).removeClass("disabled")
+        .removeAttr('disabled');
     } else {
-      $(selector).addClass("disabled");
+      $(selector).addClass("disabled")
+        .attr('disabled', 'disabled');
     }
   }
 

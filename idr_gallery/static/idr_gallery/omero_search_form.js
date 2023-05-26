@@ -745,8 +745,8 @@ class OmeroSearchForm {
     if (query?.value) {
       $(".valueFields", $orClause).val(query.value);
     }
-    if (query?.condition) {
-      $(".condition", $orClause).val(query.condition);
+    if (query?.operator) {
+      $(".condition", $orClause).val(query.operator);
     }
   }
 
