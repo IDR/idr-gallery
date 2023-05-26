@@ -1,3 +1,8 @@
+3.10.0 (May 2023)
+-----------------
+
+- Sort autocomplete by Key instead of filter by Key [#31](https://github.com/IDR/idr-gallery/pull/31)
+
 3.9.2 (February 2023)
 ---------------------
 
