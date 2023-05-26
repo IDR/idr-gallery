@@ -73,6 +73,27 @@
     display: none;
   }
 
+  .buttonbar a, .buttonbar button{
+    margin:10px 5px 5px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .home {
+    background: #263238;
+    border-radius: 10px;
+    color: #eceff1;
+    padding: 10px;
+    display: inline-block;
+    font-weight: normal;
+    border: solid #263238 1px;
+  }
+  .history_button {
+    vertical-align: baseline;
+    float: right;
+  }
+
   /* 'Search' button hidden for now */
   button[type='submit'] {
     display: none;
@@ -89,7 +110,7 @@
 
 <link rel="stylesheet" href="{% static 'idr_gallery/css/search_form_styles.css' %}?_={{VERSION}}" />
 
-<div class="row column">
+<div class="row column buttonbar">
   <!-- Home button - bit painful to handle /cell/search etc -->
   <a  {% if super_category %}
         {% for c, data in super_categories.items %}
@@ -98,9 +119,16 @@
       {% else %}
         href="{% url 'idr_gallery_index' %}"
       {% endif %}
-        style="background: #263238; border-radius: 10px; color: #eceff1; padding: 10px; margin:10px 5px 5px; display: inline-block; font-weight: normal;">
+        class="home">
     <i class="fa fa-caret-left"></i> Home
   </a>
+
+  <button class="button info small history_button" id="forward">
+    Redo
+  </button>
+  <button class="button info small history_button" id="back">
+    Undo
+  </button>
 </div>
 
 <div class="row column">
@@ -160,7 +188,18 @@
 
 <script>
   const searchForm = new OmeroSearchForm("search_form", SEARCH_ENGINE_URL, "results");
+  // When the form is created, it loads terms etc before it is "ready"...
+  searchForm.on("ready", function(){
+    // Once ready, we can use URL query to search...
+    searchFromUrl();
+  });
+
   const SEARCH_PARAM = "q";
+
+  // JSON query panel - show/hide
+  $("#query_json button").on("click", function() {
+    $("#query_json").toggleClass("hidden");
+  });
 
   function updateQueryPanel() {
     // Also show the form JSON query
@@ -179,22 +218,6 @@
     </p>`;
     document.getElementById("filterCount").innerHTML = msg;
   });
-
-  searchForm.on("form_updated", function(event, data) {
-    // Update URL, adding to browser's history
-    let formJson = searchForm.toJSON();
-    let url = "?";
-    // AQF = Addressbar Querystring Friendly: https://github.com/jsonurl/jsonurl-js
-    url += (SEARCH_PARAM + "=" + JsonURL.stringify(formJson.clauses, {AQF: true}));
-    history.pushState(null, "", url);
-
-    updateQueryPanel();
-  });
-
-  $("#query_json button").on("click", function() {
-    $("#query_json").toggleClass("hidden");
-  });
-
 
   function searchFromUrl() {
     // always show Advanced form
@@ -224,14 +247,59 @@
   }
 
 
-  searchForm.on("ready", function(){
-    searchFromUrl();
+  // HISTORY... - Save state to URL. Use browser back and forward for undo/redo
+  // We only keep note of history to enable/disable the undo/redo buttons
+  let historyCount = 0;
+  let historyState = 0;
+
+  searchForm.on("form_updated", function(event, data) {
+    // Update URL, adding to browser's history
+    let formJson = searchForm.toJSON();
+    let url = "?";
+    // AQF = Addressbar Querystring Friendly: https://github.com/jsonurl/jsonurl-js
+    url += (SEARCH_PARAM + "=" + JsonURL.stringify(formJson.clauses, {AQF: true}));
+    history.pushState(null, "", url);
+
+    updateQueryPanel();
+    historyCount++;
+    historyState = historyCount;
+    updateUndoRedo();
   });
 
-
+  // URL changes 
+  // User has hit the Forward or Back buttons
+  // doesn't fire on history.pushState() above
   window.onpopstate = (event) => {
     searchFromUrl();
+    updateUndoRedo();
   }
+
+  // Undo/Redo button Click handlers
+  $("#back").on("click", function() {
+    historyState--;
+    let b = window.history.back();
+  });
+  $("#forward").on("click", function() {
+    historyState++;
+    let f = window.history.forward();
+  });
+
+  // util function
+  function setEnabled(selector, enabled) {
+    if (enabled) {
+      $(selector).removeClass("disabled");
+    } else {
+      $(selector).addClass("disabled");
+    }
+  }
+
+  // Update disabled state of undo/redo buttons
+  function updateUndoRedo() {
+    setEnabled("#forward", historyState < historyCount);
+    setEnabled("#back", historyState > 0);
+  }
+
+  updateUndoRedo();
 
 </script>
 
