@@ -479,13 +479,14 @@ class OmeroSearchForm {
         clauses.push(or_dicts[0]);
       }
     }
-    return { clauses: clauses };
+    const case_sensitive = document.getElementById("case_sensitive").checked;
+    return { clauses: clauses, case_sensitive };
   }
 
   fromJSON(jsonQuery) {
     console.log("fromJSON", jsonQuery);
     // set complete state of form - opposite of toJSON()
-    // document.getElementById("case_sensitive").checked = case_sensitive;
+    document.getElementById("case_sensitive").checked = jsonQuery.case_sensitive;
     // Clear form and create new...
     $(".clauses", this.$form).empty();
     jsonQuery.clauses.forEach((clause) => {
@@ -1043,6 +1044,10 @@ class OmeroSearchForm {
 
     $("button[type='submit']", this.$form).on("click", (event) => {
       event.preventDefault();
+      this.formUpdated();
+    });
+
+    $("#case_sensitive", this.$form).on("click", (event) => {
       this.formUpdated();
     });
 

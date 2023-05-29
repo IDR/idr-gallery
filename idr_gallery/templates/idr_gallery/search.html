@@ -224,6 +224,7 @@
     searchForm.setAdvanced(true);
     const searchParams = new URLSearchParams(window.location.search);
     let query = searchParams.get(SEARCH_PARAM);
+    let case_sensitive = searchParams.get("case_sensitive");
     if (query) {
       // query contains whitespaces etc - not suitable for JsonURL.parse()
       // we need to turn it back into query string!
@@ -231,7 +232,10 @@
       params.append('q', query);
       // we know this string will ONLY contain q=... (safer than using window.location.search)
       query = params.toString().replace("q=", "");
-      searchForm.fromJSON({clauses: JsonURL.parse(query, {AQF: true})})
+      searchForm.fromJSON({
+        clauses: JsonURL.parse(query, {AQF: true}),
+        case_sensitive: JsonURL.parse(case_sensitive, {AQF: true})
+      })
       searchForm.submitSearch();
     } else {
       let key = searchParams.get("key");
@@ -258,6 +262,7 @@
     let url = "?";
     // AQF = Addressbar Querystring Friendly: https://github.com/jsonurl/jsonurl-js
     url += (SEARCH_PARAM + "=" + JsonURL.stringify(formJson.clauses, {AQF: true}));
+    url += "&case_sensitive=" + JsonURL.stringify(Boolean(formJson.case_sensitive));
     history.pushState(null, "", url);
 
     updateQueryPanel();
