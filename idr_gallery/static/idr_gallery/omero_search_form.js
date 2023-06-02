@@ -93,10 +93,10 @@ function mapNames(rsp, type, key, searchTerm, operator) {
   return rsp.map((resultObj) => {
     let name = resultObj.name;
     let desc = resultObj.description;
-    let attribute = key;
+    let attribute = NAME_KEY;
     // If we searched for Any, show all results.
     // "Attribute" form field will be filled (Name or Desc) if user picks item
-    if (attribute == "Any") {
+    if (key == "Any") {
       attribute = name.toLowerCase().includes(searchTerm)
         ? NAME_KEY
         : "description";
