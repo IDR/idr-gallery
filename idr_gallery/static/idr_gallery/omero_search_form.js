@@ -96,7 +96,7 @@ function mapNames(rsp, type, key, searchTerm, operator) {
     let attribute = NAME_KEY;
     // If we searched for Any, show all results.
     // "Attribute" form field will be filled (Name or Desc) if user picks item
-    if (key == "Any") {
+    if (key == "") {
       attribute = name.toLowerCase().includes(searchTerm)
         ? NAME_KEY
         : "description";
@@ -172,7 +172,7 @@ async function getAutoCompleteResults(key, query, knownKeys, operator) {
   // Need to load data from 2 end-points
   let names_url = `${SEARCH_ENGINE_URL}resources/all/names/?value=${query}`;
   // NB: Don't show auto-complete for Description yet - issues with 'equals' search
-  // if (key == "Any" || key == "description") {
+  // if (key == "" || key == "description") {
   //   names_url += `&use_description=true`;
   // }
   urls.push(names_url);
@@ -298,7 +298,7 @@ async function getAutoCompleteResults(key, query, knownKeys, operator) {
   }
 
   // If not "Any", add an option to search for contains the currently typed query
-  if (key != "Any" && keyCounts[key]) {
+  if (key != "" && keyCounts[key]) {
     let total = keyCounts[key].count;
     let type = keyCounts[key].type;
     // E.g. "Imaging Method contains light (16 experiments/screens)"
@@ -421,15 +421,26 @@ class OmeroSearchForm {
       // handle each OR...
       let ors = node.querySelectorAll(".or_clause");
 
-      let or_dicts = [...ors].map((orNode) => {
-        return {
-          name: orNode.querySelector(".keyFields").value,
-          value: orNode.querySelector(".valueFields").value,
-          operator: orNode.querySelector(".condition").value,
-          resource: this.findResourceForKey(
-            orNode.querySelector(".keyFields").value
-          ),
-        };
+      let or_dicts = [...ors].flatMap((orNode) => {
+        let name = orNode.querySelector(".keyFields").value;
+        let value = orNode.querySelector(".valueFields").value;
+        let params = [
+          {
+            value,
+            operator: orNode.querySelector(".condition").value,
+            resource: this.findResourceForKey(value),
+          },
+        ];
+        console.log("getCurrentQuery", name);
+        if (name && name != "Any") {
+          params[0].name = name;
+        } else {
+          // If the key is "Any", we need to search for 'images' OR 'containers'
+          // duplicate the clause and update resource
+          params.push(JSON.parse(JSON.stringify(params[0])));
+          params[1].resource = CONTAINER_TYPE;
+        }
+        return params;
       });
       if (or_dicts.length > 1) {
         or_conditions.push(or_dicts);
@@ -464,15 +475,21 @@ class OmeroSearchForm {
       let ors = node.querySelectorAll(".or_clause");
 
       let or_dicts = [...ors].map((orNode) => {
-        return {
-          key: orNode.querySelector(".keyFields").value,
-          value: orNode.querySelector(".valueFields").value,
+        let key = orNode.querySelector(".keyFields").value;
+        let value = orNode.querySelector(".valueFields").value;
+        let resource = this.findResourceForKey(value);
+        let params = {
+          value,
           operator: orNode.querySelector(".condition").value,
-          resource: this.findResourceForKey(
-            orNode.querySelector(".keyFields").value
-          ),
         };
+        if (key) {
+          // only need 'resource' if we have 'key'
+          params.key = key;
+          params.resource = resource;
+        }
+        return params;
       });
+      console.log("toJSON", or_dicts);
       if (or_dicts.length > 1) {
         clauses.push(or_dicts);
       } else {
@@ -504,35 +521,22 @@ class OmeroSearchForm {
 
   getHumanReadableQuery() {
     // E.g. "Antibody equals seh1-fl antibody AND (Gene Symbol equals cdc42 OR Gene Symbol equals cdc25c)"
-    let query = this.getCurrentQuery();
+    let query = this.toJSON();
+    console.log('getHumanReadableQuery', query);
     // name, value, operator, resource
     const maxLen = 50;
-    let andQuery = query.query_details.and_filters
-      .map(
-        // show tooltip and truncate if value is too long
-        (q) =>
-          `<strong>${q.name || "Any Attribute"}</strong>
-          ${q.operator}
-          <strong ${q.value.length > maxLen ? `title="${q.value}"` : ""}>
-            ${q.value.slice(0, maxLen)}${q.value.length > maxLen ? "..." : ""}
-          </strong>`
-      )
-      .join(" AND ");
-    let orQueries = query.query_details.or_filters.map((ors) => {
-      return (
-        "(" +
-        ors.map((q) => `${q.name} ${q.operator} ${q.value}`).join(" OR ") +
-        ")"
-      );
-    });
-    let results = [];
-    if (andQuery.length > 0) {
-      results.push(andQuery);
+    function qToString(q) {
+      if (Array.isArray(q)) {
+        return q.map(qToString).join(" OR ");
+      }
+      // show tooltip and truncate if value is too long
+      return `<strong>${q.key || "Any"}</strong>
+      ${q.operator}
+      <strong ${q.value.length > maxLen ? `title="${q.value}"` : ""}>
+        ${q.value.slice(0, maxLen)}${q.value.length > maxLen ? "..." : ""}
+      </strong>`;
     }
-    if (orQueries.length > 0) {
-      results.push(orQueries);
-    }
-    return results.join(" AND ");
+    return query.clauses.map(qToString).join(" AND ");
   }
 
   setAdvanced(advanced) {
@@ -547,7 +551,7 @@ class OmeroSearchForm {
   setKeyValues($orClause) {
     // Adds <option> to '.keyFields' for each item in pre-cached resources_data
     let $field = $(".keyFields", $orClause);
-    let anyOption = `<option value="Any">Any</option>`;
+    let anyOption = `<option value="">Any</option>`;
     // We combine 'project' and 'screen' into 'Study'
     let menu = {
       Study: this.resources_data.project.concat(this.resources_data.screen),
@@ -593,7 +597,7 @@ class OmeroSearchForm {
           // Need to know what Attribute is of adjacent <select>
           key = $(".keyFields", $orClause).val();
           let operator = $(".condition", $orClause).val();
-          if (key != "Any") {
+          if (key != "") {
             // if we know the key, we will switch to 'equals' (except for the first 'contains' option)
             operator = "equals";
           }
@@ -802,7 +806,7 @@ class OmeroSearchForm {
   }
 
   validateQuery(query) {
-    // If any keys are "Any", don't perform search...
+    // If no clauses or any values are empty, don't perform search...
     console.log("validating query...", query);
     let and_clauses = query?.query_details?.and_filters;
     let or_clauses = query?.query_details?.or_filters.flatMap((c) => c);
@@ -815,11 +819,6 @@ class OmeroSearchForm {
       clauses = clauses.concat(or_clauses);
     }
     if (clauses.length == 0) {
-      return false;
-    }
-    // Invalid if name is "Any"
-    if (clauses.some((clause) => clause.name == "Any")) {
-      console.log("Can't search for 'Any' key");
       return false;
     }
     // Invalid if value is empty

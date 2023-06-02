@@ -241,8 +241,8 @@
       let key = searchParams.get("key");
       let value = searchParams.get("value");
       let resource = searchParams.get("resource") || "image";
-      if (key && value) {
-        let operator = searchParams.get("operator") || "equals";
+      if (value) {
+        let operator = searchParams.get("operator") || "contains";
         searchForm.setKeyValueQuery({key, value, operator, resource});
         searchForm.submitSearch();
       }
