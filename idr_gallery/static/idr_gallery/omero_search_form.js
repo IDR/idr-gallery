@@ -200,12 +200,10 @@ async function getAutoCompleteResults(key, query, knownKeys, operator) {
       projectScreenHits[id] = obj;
     } else {
       // we have duplicate result for project & screen - simply add counts
-      console.log("Combining", obj, projectScreenHits[id]);
       projectScreenHits[id].count = projectScreenHits[id].count + obj.count;
       projectScreenHits[id].type = CONTAINER_TYPE;
     }
   });
-  console.log("projectScreenHits", projectScreenHits);
 
   let imageHits = data.image.data.map((obj) => {
     return { ...obj, type: "image", count: obj["Number of images"] };
@@ -431,7 +429,6 @@ class OmeroSearchForm {
             resource: this.findResourceForKey(value),
           },
         ];
-        console.log("getCurrentQuery", name);
         if (name && name != "Any") {
           params[0].name = name;
         } else {
@@ -489,7 +486,6 @@ class OmeroSearchForm {
         }
         return params;
       });
-      console.log("toJSON", or_dicts);
       if (or_dicts.length > 1) {
         clauses.push(or_dicts);
       } else {
@@ -501,7 +497,6 @@ class OmeroSearchForm {
   }
 
   fromJSON(jsonQuery) {
-    console.log("fromJSON", jsonQuery);
     // set complete state of form - opposite of toJSON()
     document.getElementById("case_sensitive").checked =
       jsonQuery.case_sensitive;
@@ -522,7 +517,6 @@ class OmeroSearchForm {
   getHumanReadableQuery() {
     // E.g. "Antibody equals seh1-fl antibody AND (Gene Symbol equals cdc42 OR Gene Symbol equals cdc25c)"
     let query = this.toJSON();
-    console.log('getHumanReadableQuery', query);
     // name, value, operator, resource
     const maxLen = 50;
     function qToString(q) {
@@ -807,7 +801,6 @@ class OmeroSearchForm {
 
   validateQuery(query) {
     // If no clauses or any values are empty, don't perform search...
-    console.log("validating query...", query);
     let and_clauses = query?.query_details?.and_filters;
     let or_clauses = query?.query_details?.or_filters.flatMap((c) => c);
 
@@ -830,7 +823,6 @@ class OmeroSearchForm {
   }
 
   submitSearch() {
-    console.log("Submit search...");
     let query = this.getCurrentQuery();
     if (!this.validateQuery(query)) {
       console.log("Form not valid");
