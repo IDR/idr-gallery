@@ -486,7 +486,8 @@ class OmeroSearchForm {
   fromJSON(jsonQuery) {
     console.log("fromJSON", jsonQuery);
     // set complete state of form - opposite of toJSON()
-    document.getElementById("case_sensitive").checked = jsonQuery.case_sensitive;
+    document.getElementById("case_sensitive").checked =
+      jsonQuery.case_sensitive;
     // Clear form and create new...
     $(".clauses", this.$form).empty();
     jsonQuery.clauses.forEach((clause) => {
@@ -510,7 +511,7 @@ class OmeroSearchForm {
       .map(
         // show tooltip and truncate if value is too long
         (q) =>
-          `<strong>${q.name}</strong>
+          `<strong>${q.name || "Any Attribute"}</strong>
           ${q.operator}
           <strong ${q.value.length > maxLen ? `title="${q.value}"` : ""}>
             ${q.value.slice(0, maxLen)}${q.value.length > maxLen ? "..." : ""}
