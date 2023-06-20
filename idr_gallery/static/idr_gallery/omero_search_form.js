@@ -295,23 +295,27 @@ async function getAutoCompleteResults(key, query, knownKeys, operator) {
     results = [{ label: "No results found.", value: -1 }];
   }
 
-  // If not "Any", add an option to search for contains the currently typed query
-  if (key != "" && keyCounts[key]) {
-    let total = keyCounts[key].count;
-    let type = keyCounts[key].type;
-    // E.g. "Imaging Method contains light (16 experiments/screens)"
-    // Or "Imaging Method contains SPIM (1 experiment)"
-    const allOption = {
-      key: key,
-      label: `<span style="color:#bbb">${key} contains</span>
-        <b>${query}</b> <span style="color:#bbb">(${total}
-          ${DISPLAY_TYPES[type]}${total != 1 ? "s" : ""})</span>`,
-      value: query,
-      dtype: type,
-      operator: "contains",
-    };
-    results.unshift(allOption);
+  // Add an option to search for contains the currently typed query with current key (or "Any")
+  let total = -1;
+  let type = "image";
+  if (keyCounts[key]) {
+    total = keyCounts[key].count;
+    type = keyCounts[key].type;
+  } else {
+    total = Object.values(keyCounts).reduce((prev, curr) => prev + curr.count, 0);
   }
+  // E.g. "Imaging Method contains light (16 experiments/screens)"
+  // Or "Imaging Method contains SPIM (1 experiment)"
+  const allOption = {
+    key: key,
+    label: `<span style="color:#bbb">${key || "Any"} contains</span>
+      <b>${query}</b> <span style="color:#bbb">(${total}
+        ${DISPLAY_TYPES[type]}${total != 1 ? "s" : ""})</span>`,
+    value: query,
+    dtype: type,
+    operator: "contains",
+  };
+  results.unshift(allOption);
 
   return results;
 }
