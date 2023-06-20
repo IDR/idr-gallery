@@ -24,14 +24,14 @@ const AND_CLAUSE_HTML = `
         </button>
     </div>
   </div>
-  <button type="button" class="addOR" href="#" title="Add OR condition to the group">
+  <button type="button" class="addOR button info small round" href="#" title="Add OR condition to the group">
     add 'OR'...
   </button>
 </div>`;
 
 const FORM_FOOTER_HTML = `
 <div>
-<button id="addAND" type="button" class="no-border" title="Add an 'AND' clause to the query">
+<button id="addAND" type="button" class="button info small round" title="Add an 'AND' clause to the query">
   add AND...
 </button>
 <label class="form-check-label" for="case_sensitive">
@@ -93,10 +93,10 @@ function mapNames(rsp, type, key, searchTerm, operator) {
   return rsp.map((resultObj) => {
     let name = resultObj.name;
     let desc = resultObj.description;
-    let attribute = key;
+    let attribute = NAME_KEY;
     // If we searched for Any, show all results.
     // "Attribute" form field will be filled (Name or Desc) if user picks item
-    if (attribute == "Any") {
+    if (key == "") {
       attribute = name.toLowerCase().includes(searchTerm)
         ? NAME_KEY
         : "description";
@@ -172,7 +172,7 @@ async function getAutoCompleteResults(key, query, knownKeys, operator) {
   // Need to load data from 2 end-points
   let names_url = `${SEARCH_ENGINE_URL}resources/all/names/?value=${query}`;
   // NB: Don't show auto-complete for Description yet - issues with 'equals' search
-  // if (key == "Any" || key == "description") {
+  // if (key == "" || key == "description") {
   //   names_url += `&use_description=true`;
   // }
   urls.push(names_url);
@@ -200,12 +200,10 @@ async function getAutoCompleteResults(key, query, knownKeys, operator) {
       projectScreenHits[id] = obj;
     } else {
       // we have duplicate result for project & screen - simply add counts
-      console.log("Combining", obj, projectScreenHits[id]);
       projectScreenHits[id].count = projectScreenHits[id].count + obj.count;
       projectScreenHits[id].type = CONTAINER_TYPE;
     }
   });
-  console.log("projectScreenHits", projectScreenHits);
 
   let imageHits = data.image.data.map((obj) => {
     return { ...obj, type: "image", count: obj["Number of images"] };
@@ -297,23 +295,27 @@ async function getAutoCompleteResults(key, query, knownKeys, operator) {
     results = [{ label: "No results found.", value: -1 }];
   }
 
-  // If not "Any", add an option to search for contains the currently typed query
-  if (key != "Any" && keyCounts[key]) {
-    let total = keyCounts[key].count;
-    let type = keyCounts[key].type;
-    // E.g. "Imaging Method contains light (16 experiments/screens)"
-    // Or "Imaging Method contains SPIM (1 experiment)"
-    const allOption = {
-      key: key,
-      label: `<span style="color:#bbb">${key} contains</span>
-        <b>${query}</b> <span style="color:#bbb">(${total}
-          ${DISPLAY_TYPES[type]}${total != 1 ? "s" : ""})</span>`,
-      value: query,
-      dtype: type,
-      operator: "contains",
-    };
-    results.unshift(allOption);
+  // Add an option to search for contains the currently typed query with current key (or "Any")
+  let total = -1;
+  let type = "image";
+  if (keyCounts[key]) {
+    total = keyCounts[key].count;
+    type = keyCounts[key].type;
+  } else {
+    total = Object.values(keyCounts).reduce((prev, curr) => prev + curr.count, 0);
   }
+  // E.g. "Imaging Method contains light (16 experiments/screens)"
+  // Or "Imaging Method contains SPIM (1 experiment)"
+  const allOption = {
+    key: key,
+    label: `<span style="color:#bbb">${key || "Any"} contains</span>
+      <b>${query}</b> <span style="color:#bbb">(${total}
+        ${DISPLAY_TYPES[type]}${total != 1 ? "s" : ""})</span>`,
+    value: query,
+    dtype: type,
+    operator: "contains",
+  };
+  results.unshift(allOption);
 
   return results;
 }
@@ -421,15 +423,25 @@ class OmeroSearchForm {
       // handle each OR...
       let ors = node.querySelectorAll(".or_clause");
 
-      let or_dicts = [...ors].map((orNode) => {
-        return {
-          name: orNode.querySelector(".keyFields").value,
-          value: orNode.querySelector(".valueFields").value,
-          operator: orNode.querySelector(".condition").value,
-          resource: this.findResourceForKey(
-            orNode.querySelector(".keyFields").value
-          ),
-        };
+      let or_dicts = [...ors].flatMap((orNode) => {
+        let name = orNode.querySelector(".keyFields").value;
+        let value = orNode.querySelector(".valueFields").value;
+        let params = [
+          {
+            value,
+            operator: orNode.querySelector(".condition").value,
+            resource: this.findResourceForKey(value),
+          },
+        ];
+        if (name && name != "Any") {
+          params[0].name = name;
+        } else {
+          // If the key is "Any", we need to search for 'images' OR 'containers'
+          // duplicate the clause and update resource
+          params.push(JSON.parse(JSON.stringify(params[0])));
+          params[1].resource = CONTAINER_TYPE;
+        }
+        return params;
       });
       if (or_dicts.length > 1) {
         or_conditions.push(or_dicts);
@@ -452,37 +464,77 @@ class OmeroSearchForm {
     return query;
   }
 
+  toJSON() {
+    // This returns a JSON representation of the form (preserving order etc)
+    let clauses = [];
+    let queryandnodes = document.querySelectorAll(
+      `#${this.formId} .and_clause`
+    );
+    for (let i = 0; i < queryandnodes.length; i++) {
+      let node = queryandnodes[i];
+      // handle each OR...
+      let ors = node.querySelectorAll(".or_clause");
+
+      let or_dicts = [...ors].map((orNode) => {
+        let key = orNode.querySelector(".keyFields").value;
+        let value = orNode.querySelector(".valueFields").value;
+        let resource = this.findResourceForKey(value);
+        let params = {
+          value,
+          operator: orNode.querySelector(".condition").value,
+        };
+        if (key) {
+          // only need 'resource' if we have 'key'
+          params.key = key;
+          params.resource = resource;
+        }
+        return params;
+      });
+      if (or_dicts.length > 1) {
+        clauses.push(or_dicts);
+      } else {
+        clauses.push(or_dicts[0]);
+      }
+    }
+    const case_sensitive = document.getElementById("case_sensitive").checked;
+    return { clauses: clauses, case_sensitive };
+  }
+
+  fromJSON(jsonQuery) {
+    // set complete state of form - opposite of toJSON()
+    document.getElementById("case_sensitive").checked =
+      jsonQuery.case_sensitive;
+    // Clear form and create new...
+    $(".clauses", this.$form).empty();
+    jsonQuery.clauses.forEach((clause) => {
+      if (!Array.isArray(clause)) {
+        this.addAnd(clause);
+      } else {
+        let $clause = this.addAnd(clause[0]);
+        clause.slice(1).forEach((or) => {
+          this.addOr($clause, or);
+        });
+      }
+    });
+  }
+
   getHumanReadableQuery() {
     // E.g. "Antibody equals seh1-fl antibody AND (Gene Symbol equals cdc42 OR Gene Symbol equals cdc25c)"
-    let query = this.getCurrentQuery();
+    let query = this.toJSON();
     // name, value, operator, resource
     const maxLen = 50;
-    let andQuery = query.query_details.and_filters
-      .map(
-        // show tooltip and truncate if value is too long
-        (q) =>
-          `<strong>${q.name}</strong>
-          ${q.operator}
-          <strong ${q.value.length > maxLen ? `title="${q.value}"` : ""}>
-            ${q.value.slice(0, maxLen)}${q.value.length > maxLen ? "..." : ""}
-          </strong>`
-      )
-      .join(" AND ");
-    let orQueries = query.query_details.or_filters.map((ors) => {
-      return (
-        "(" +
-        ors.map((q) => `${q.name} ${q.operator} ${q.value}`).join(" OR ") +
-        ")"
-      );
-    });
-    let results = [];
-    if (andQuery.length > 0) {
-      results.push(andQuery);
+    function qToString(q) {
+      if (Array.isArray(q)) {
+        return q.map(qToString).join(" OR ");
+      }
+      // show tooltip and truncate if value is too long
+      return `<strong>${q.key || "Any"}</strong>
+      ${q.operator}
+      <strong ${q.value.length > maxLen ? `title="${q.value}"` : ""}>
+        ${q.value.slice(0, maxLen)}${q.value.length > maxLen ? "..." : ""}
+      </strong>`;
     }
-    if (orQueries.length > 0) {
-      results.push(orQueries);
-    }
-    return results.join(" AND ");
+    return query.clauses.map(qToString).join(" AND ");
   }
 
   setAdvanced(advanced) {
@@ -497,7 +549,7 @@ class OmeroSearchForm {
   setKeyValues($orClause) {
     // Adds <option> to '.keyFields' for each item in pre-cached resources_data
     let $field = $(".keyFields", $orClause);
-    let anyOption = `<option value="Any">Any</option>`;
+    let anyOption = `<option value="">Any</option>`;
     // We combine 'project' and 'screen' into 'Study'
     let menu = {
       Study: this.resources_data.project.concat(this.resources_data.screen),
@@ -543,7 +595,7 @@ class OmeroSearchForm {
           // Need to know what Attribute is of adjacent <select>
           key = $(".keyFields", $orClause).val();
           let operator = $(".condition", $orClause).val();
-          if (key != "Any") {
+          if (key != "") {
             // if we know the key, we will switch to 'equals' (except for the first 'contains' option)
             operator = "equals";
           }
@@ -697,8 +749,8 @@ class OmeroSearchForm {
     if (query?.value) {
       $(".valueFields", $orClause).val(query.value);
     }
-    if (query?.condition) {
-      $(".condition", $orClause).val(query.condition);
+    if (query?.operator) {
+      $(".condition", $orClause).val(query.operator);
     }
   }
 
@@ -752,8 +804,7 @@ class OmeroSearchForm {
   }
 
   validateQuery(query) {
-    // If any keys are "Any", don't perform search...
-    console.log("validating query...", query);
+    // If no clauses or any values are empty, don't perform search...
     let and_clauses = query?.query_details?.and_filters;
     let or_clauses = query?.query_details?.or_filters.flatMap((c) => c);
 
@@ -767,11 +818,6 @@ class OmeroSearchForm {
     if (clauses.length == 0) {
       return false;
     }
-    // Invalid if name is "Any"
-    if (clauses.some((clause) => clause.name == "Any")) {
-      console.log("Can't search for 'Any' key");
-      return false;
-    }
     // Invalid if value is empty
     if (clauses.some((clause) => clause.value.length === 0)) {
       console.log("Empty value field");
@@ -781,7 +827,6 @@ class OmeroSearchForm {
   }
 
   submitSearch() {
-    console.log("Submit search...");
     let query = this.getCurrentQuery();
     if (!this.validateQuery(query)) {
       console.log("Form not valid");
@@ -979,6 +1024,7 @@ class OmeroSearchForm {
       event.preventDefault();
       let $orClause = $(event.target).closest(".or_clause");
       this.removeOr($orClause);
+      this.formUpdated();
     });
 
     this.$form.on("change", ".keyFields", (event) => {
@@ -994,6 +1040,10 @@ class OmeroSearchForm {
 
     $("button[type='submit']", this.$form).on("click", (event) => {
       event.preventDefault();
+      this.formUpdated();
+    });
+
+    $("#case_sensitive", this.$form).on("click", (event) => {
       this.formUpdated();
     });
 

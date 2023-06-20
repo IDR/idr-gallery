@@ -23,4 +23,5 @@ for c in SUPER_CATEGORIES:
     urlpatterns.append(url(r'^%s/$' % c, views.index, {'super_category': c},
                            name="gallery_super_category"))
     urlpatterns.append(url(r'^%s/search/$' % c, views.index,
-                           {'super_category': c}))
+                           {'super_category': c},
+                           name="idr_gallery_search_cat"))

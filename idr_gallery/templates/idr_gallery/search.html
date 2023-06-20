@@ -48,6 +48,52 @@
     clear: right;
   }
 
+  #query_json {
+    position: relative;
+  }
+  #query_json code {
+    font-size: 10px;
+  }
+  #query_json pre {
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+  }
+  #query_json button {
+    float: right;
+    margin: 0;
+    padding: 6px;
+    border-radius: 8px;
+    font-size: 13px !important;
+    top: -50px;
+    right: 5px;
+    position: absolute;
+  }
+  .hidden pre {
+    display: none;
+  }
+
+  .buttonbar a, .buttonbar button{
+    margin:10px 5px 5px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .home {
+    background: #263238;
+    border-radius: 10px;
+    color: #eceff1;
+    padding: 10px;
+    display: inline-block;
+    font-weight: normal;
+    border: solid #263238 1px;
+  }
+  .history_button {
+    vertical-align: baseline;
+    float: right;
+  }
+
   /* 'Search' button hidden for now */
   button[type='submit'] {
     display: none;
@@ -60,9 +106,11 @@
   }
 </style>
 
+<script src="{% static 'idr_gallery/jsonurl.js' %}?_={{VERSION}}"></script>
+
 <link rel="stylesheet" href="{% static 'idr_gallery/css/search_form_styles.css' %}?_={{VERSION}}" />
 
-<div class="row column">
+<div class="row column buttonbar">
   <!-- Home button - bit painful to handle /cell/search etc -->
   <a  {% if super_category %}
         {% for c, data in super_categories.items %}
@@ -71,9 +119,16 @@
       {% else %}
         href="{% url 'idr_gallery_index' %}"
       {% endif %}
-        style="background: #263238; border-radius: 10px; color: #eceff1; padding: 10px; margin:10px 5px 5px; display: inline-block; font-weight: normal;">
+        class="home">
     <i class="fa fa-caret-left"></i> Home
   </a>
+
+  <button class="button info small history_button" id="forward">
+    Redo
+  </button>
+  <button class="button info small history_button" id="back">
+    Undo
+  </button>
 </div>
 
 <div class="row column">
@@ -84,6 +139,12 @@
 
       <form id="search_form">
       </form>
+
+      <div id="query_json" class="hidden">
+        <button title="Show JSON used to query the search-engine" 
+          class="hollow button secondary small round" href="#">Query JSON</button>
+        <pre><code></code></pre>
+      </div>
 
       <div id="filterCount" class="row horizontal text-center">
         <!-- results message here -->
@@ -127,10 +188,27 @@
 
 <script>
   const searchForm = new OmeroSearchForm("search_form", SEARCH_ENGINE_URL, "results");
+  // When the form is created, it loads terms etc before it is "ready"...
+  searchForm.on("ready", function(){
+    // Once ready, we can use URL query to search...
+    searchFromUrl();
+  });
+
+  const SEARCH_PARAM = "q";
+
+  // JSON query panel - show/hide
+  $("#query_json button").on("click", function() {
+    $("#query_json").toggleClass("hidden");
+  });
+
+  function updateQueryPanel() {
+    // Also show the form JSON query
+    let jsonData = searchForm.getCurrentQuery();
+    $("#query_json code").text(JSON.stringify(jsonData, null, 2));
+  }
 
   // custom handling of search results, not handled by OmeroSearchForm
   searchForm.on("results", function(event, data) {
-    console.log("on.results", event, data);
     let studiesList = data.results?.results || [];
     let imgCount = studiesList.reduce((prev, study) => prev += study["image count"], 0);
     let studies = studiesList.length === 1 ? DISPLAY_TYPES[studiesList[0].type] : 'experiments/screens';
@@ -141,49 +219,94 @@
     document.getElementById("filterCount").innerHTML = msg;
   });
 
+  function searchFromUrl() {
+    // always show Advanced form
+    searchForm.setAdvanced(true);
+    const searchParams = new URLSearchParams(window.location.search);
+    let query = searchParams.get(SEARCH_PARAM);
+    let case_sensitive = searchParams.get("case_sensitive");
+    if (query) {
+      // query contains whitespaces etc - not suitable for JsonURL.parse()
+      // we need to turn it back into query string!
+      let params = new URLSearchParams()
+      params.append('q', query);
+      // we know this string will ONLY contain q=... (safer than using window.location.search)
+      query = params.toString().replace("q=", "");
+      searchForm.fromJSON({
+        clauses: JsonURL.parse(query, {AQF: true}),
+        case_sensitive: JsonURL.parse(case_sensitive, {AQF: true})
+      })
+      searchForm.submitSearch();
+    } else {
+      let key = searchParams.get("key");
+      let value = searchParams.get("value");
+      let resource = searchParams.get("resource") || "image";
+      if (value) {
+        let operator = searchParams.get("operator") || "contains";
+        searchForm.setKeyValueQuery({key, value, operator, resource});
+        searchForm.submitSearch();
+      }
+    }
+    updateQueryPanel();
+  }
+
+
+  // HISTORY... - Save state to URL. Use browser back and forward for undo/redo
+  // We only keep note of history to enable/disable the undo/redo buttons
+  let historyCount = 0;
+  let historyState = 0;
+
   searchForm.on("form_updated", function(event, data) {
     // Update URL, adding to browser's history
-    let search_query = searchForm.getCurrentQuery();
-    // for now, we only support the first AND clause...
-    const clause = search_query.query_details.and_filters[0];
-    let params = new URLSearchParams();
-    params.append("key", clause.name);
-    params.append("value", clause.value);
-    params.append("operator", clause.operator);
-    params.append("resource", clause.resource);
-    history.pushState(null, "", "?" + params.toString());
+    let formJson = searchForm.toJSON();
+    let url = "?";
+    // AQF = Addressbar Querystring Friendly: https://github.com/jsonurl/jsonurl-js
+    url += (SEARCH_PARAM + "=" + JsonURL.stringify(formJson.clauses, {AQF: true}));
+    url += "&case_sensitive=" + JsonURL.stringify(Boolean(formJson.case_sensitive));
+    history.pushState(null, "", url);
+
+    updateQueryPanel();
+    historyCount++;
+    historyState = historyCount;
+    updateUndoRedo();
   });
 
-
-  function searchFromUrl() {
-    const searchParams = new URLSearchParams(window.location.search);
-    let key = searchParams.get("key");
-    let value = searchParams.get("value");
-    let resource = searchParams.get("resource") || "image";
-    if (key && value) {
-      let operator = searchParams.get("operator") || "equals";
-      searchForm.setKeyValueQuery({key, value, operator, resource});
-      searchForm.submitSearch();
-    }
-    // 'hidden' support for ?advanced=true to show AND/OR buttons
-    let advanced = searchParams.get("advanced");
-    if (advanced) {
-      searchForm.setAdvanced(true);
-    } else {
-      searchForm.setAdvanced(false);
-    }
-  }
-
-
-  searchForm.on("ready", function(){
-    searchFromUrl();
-  });
-
-
+  // URL changes 
+  // User has hit the Forward or Back buttons
+  // doesn't fire on history.pushState() above
   window.onpopstate = (event) => {
-    console.log(`onpopstate location: ${document.location}, state: ${JSON.stringify(event.state)}`)
     searchFromUrl();
+    updateUndoRedo();
   }
+
+  // Undo/Redo button Click handlers
+  $("#back").on("click", function() {
+    historyState--;
+    let b = window.history.back();
+  });
+  $("#forward").on("click", function() {
+    historyState++;
+    let f = window.history.forward();
+  });
+
+  // util function
+  function setEnabled(selector, enabled) {
+    if (enabled) {
+      $(selector).removeClass("disabled")
+        .removeAttr('disabled');
+    } else {
+      $(selector).addClass("disabled")
+        .attr('disabled', 'disabled');
+    }
+  }
+
+  // Update disabled state of undo/redo buttons
+  function updateUndoRedo() {
+    setEnabled("#forward", historyState < historyCount);
+    setEnabled("#back", historyState > 0);
+  }
+
+  updateUndoRedo();
 
 </script>
 
