@@ -1,3 +1,8 @@
+3.10.1 (July 2023)
+------------------
+
+- Remove twitter feed [#36](https://github.com/IDR/idr-gallery/pull/36)
+
 3.10.0 (May 2023)
 -----------------
 
