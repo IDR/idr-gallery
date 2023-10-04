@@ -92,7 +92,7 @@ function autoCompleteDisplayResults(queryVal, data, filterImageKeys) {
   const highlightStudy = results.length === 0;
   let studiesHtml = ""
   if (!filterImageKeys) {
-    getMatchingStudiesHtml(queryVal, highlightStudy);
+    studiesHtml = getMatchingStudiesHtml(queryVal, highlightStudy);
   } else {
     results = results.filter(res => filterImageKeys.includes(res.Key));
   }
