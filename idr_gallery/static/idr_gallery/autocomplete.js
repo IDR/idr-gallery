@@ -199,19 +199,19 @@ $("#maprQuery")
         case_sensitive: case_sensitive,
       };
       let url;
-      // NB: Don't use mapr for some slow queries
-      if (configId === "any" || configId === "cellline") {
+      // We use searchengine for ALL backend queries...
+      // if (configId === "any" || configId === "cellline") {
         // Use searchengine...
         url = `${SEARCH_ENGINE_URL}resources/image/searchvalues/`;
         requestData = { value: request.term };
-      } else {
-        // Use mapr to find auto-complete matches TODO: to be removed
-        url = `${BASE_URL}mapr/api/autocomplete/${configId}/`;
-        requestData.value = case_sensitive
-          ? request.term
-          : request.term.toLowerCase();
-        requestData.query = true; // use a 'like' HQL query
-      }
+      // } else {
+      //   // Use mapr to find auto-complete matches TODO: to be removed
+      //   url = `${BASE_URL}mapr/api/autocomplete/${configId}/`;
+      //   requestData.value = case_sensitive
+      //     ? request.term
+      //     : request.term.toLowerCase();
+      //   requestData.query = true; // use a 'like' HQL query
+      // }
       showSpinner();
       $.ajax({
         dataType: "json",
@@ -223,9 +223,10 @@ $("#maprQuery")
           let queryVal = $("#maprQuery").val().trim();
           let results = [];
           // check that input hasn't changed during the call
-          if ((configId === "any" || configId === "cellline") && request.term.trim() == queryVal) {
+          if (request.term.trim() == queryVal) {
             let filterImageKeys;
             if (allKeys) {
+              // if we've chosen a Mapr-key to filter results...
               filterImageKeys = allKeys.split(",");
             }
             autoCompleteDisplayResults(queryVal, data, filterImageKeys);
