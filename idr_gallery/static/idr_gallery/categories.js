@@ -343,8 +343,9 @@ async function init() {
 
       let options = FILTER_MAPR_KEYS.map((key) => {
         let config = mapr_settings[key];
+        let allKeys = config.all.join(",");
         if (config) {
-          return `<option value="mapr_${key}">${config.label}</option>`;
+          return `<option value="mapr_${key}" data-allkeys="${allKeys}">${config.label}</option>`;
         } else {
           return "";
         }
