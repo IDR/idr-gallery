@@ -19,13 +19,15 @@
         <link href="{% static 'idr_gallery/css/idr.css' %}?_={{VERSION}}" rel="stylesheet">
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
         <!-- Babel polfill (Symbol, Promise) -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.6.15/browser-polyfill.min.js"></script>
-        <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
-        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-        <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.6.15/browser-polyfill.min.js" crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-2.2.4.js"
+            integrity="sha256-iT6Q9iMJYuQiMWNd9lDyBUStIq/8PuOW33aOqmvFpqI="
+            crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+        <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet" crossorigin="anonymous">
 
         <script src="{% static 'idr_gallery/3rdparty/foundation/foundation.min.js' %}"></script>
-        <script src="{{ base_url }}about/js/version.js"></script>
+        <script src="{{ base_url }}about/js/version.js" crossorigin="anonymous"></script>
 
 
         <script src="{% static 'idr_gallery/model.js' %}?_={{VERSION}}"></script>
