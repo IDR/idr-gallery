@@ -195,23 +195,10 @@ $("#maprQuery")
       configId = configId.replace("mapr_", "");
       let case_sensitive = false;
 
-      let requestData = {
-        case_sensitive: case_sensitive,
-      };
-      let url;
       // We use searchengine for ALL backend queries...
-      // if (configId === "any" || configId === "cellline") {
-        // Use searchengine...
-        url = `${SEARCH_ENGINE_URL}resources/image/searchvalues/`;
-        requestData = { value: request.term };
-      // } else {
-      //   // Use mapr to find auto-complete matches TODO: to be removed
-      //   url = `${BASE_URL}mapr/api/autocomplete/${configId}/`;
-      //   requestData.value = case_sensitive
-      //     ? request.term
-      //     : request.term.toLowerCase();
-      //   requestData.query = true; // use a 'like' HQL query
-      // }
+      let url = `${SEARCH_ENGINE_URL}resources/image/searchvalues/`;
+      let requestData = { value: request.term };
+
       showSpinner();
       $.ajax({
         dataType: "json",
