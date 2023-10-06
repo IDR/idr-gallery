@@ -1,3 +1,8 @@
+3.11.0 (October 2023)
+---------------------
+
+- Use search engine for all front-page auto-complete [#40](https://github.com/IDR/idr-gallery/pull/40)
+
 3.10.1 (July 2023)
 ------------------
 
