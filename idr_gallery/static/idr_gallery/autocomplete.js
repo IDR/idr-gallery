@@ -79,17 +79,23 @@ function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // $& means the whole matched string
 }
 
-function autoCompleteDisplayResults(queryVal, data) {
+function autoCompleteDisplayResults(queryVal, data, filterImageKeys) {
   // For showing the searchengine results in a panel
+  // filterImageKey is used if we want mapr-like behaviour showing results from a single Key
   let queryRegex = new RegExp(escapeRegExp(queryVal), "ig"); // ignore-case, global
 
   // Search-engine results...
   let results = [...data.data];
 
-  // Also show 'instant' filtering of studies
+  // Also show 'instant' filtering of studies (if we're not filtering images)
   // If there are no search-engine Image results, we highlight first Study
   const highlightStudy = results.length === 0;
-  let studiesHtml = getMatchingStudiesHtml(queryVal, highlightStudy);
+  let studiesHtml = ""
+  if (!filterImageKeys) {
+    studiesHtml = getMatchingStudiesHtml(queryVal, highlightStudy);
+  } else {
+    results = results.filter(res => filterImageKeys.includes(res.Key));
+  }
 
   results.sort(autocompleteSort(queryVal));
   let imagesHtml = results
@@ -163,6 +169,8 @@ $("#maprQuery")
     source: function (request, response) {
       // if configId is not from mapr, we filter on mapValues...
       let configId = document.getElementById("maprConfig").value;
+      // we only need mapr allKeys if we're filtering searchengine results by mapr keys
+      let allKeys = document.querySelector('#maprConfig option:checked').dataset.allkeys;
       // Don't handle empty queries
       if (request.term.trim().length == 0) {
         response();
@@ -187,22 +195,10 @@ $("#maprQuery")
       configId = configId.replace("mapr_", "");
       let case_sensitive = false;
 
-      let requestData = {
-        case_sensitive: case_sensitive,
-      };
-      let url;
-      if (configId === "any") {
-        // Use searchengine...
-        url = `${SEARCH_ENGINE_URL}resources/image/searchvalues/`;
-        requestData = { value: request.term };
-      } else {
-        // Use mapr to find auto-complete matches TODO: to be removed
-        url = `${BASE_URL}mapr/api/autocomplete/${configId}/`;
-        requestData.value = case_sensitive
-          ? request.term
-          : request.term.toLowerCase();
-        requestData.query = true; // use a 'like' HQL query
-      }
+      // We use searchengine for ALL backend queries...
+      let url = `${SEARCH_ENGINE_URL}resources/image/searchvalues/`;
+      let requestData = { value: request.term };
+
       showSpinner();
       $.ajax({
         dataType: "json",
@@ -214,8 +210,13 @@ $("#maprQuery")
           let queryVal = $("#maprQuery").val().trim();
           let results = [];
           // check that input hasn't changed during the call
-          if (configId === "any" && request.term.trim() == queryVal) {
-            autoCompleteDisplayResults(queryVal, data);
+          if (request.term.trim() == queryVal) {
+            let filterImageKeys;
+            if (allKeys) {
+              // if we've chosen a Mapr-key to filter results...
+              filterImageKeys = allKeys.split(",");
+            }
+            autoCompleteDisplayResults(queryVal, data, filterImageKeys);
           } else {
             results = data;
           }
