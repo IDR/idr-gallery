@@ -222,7 +222,7 @@ function imageCount(idrId, container) {
   }
 
   let imgCount = containers
-    .map((row) => row["5D Images"])
+    .map((row) => row["image count"])
     .reduce((total, value) => total + parseInt(value, 10), 0);
   return (
     new Intl.NumberFormat().format(imgCount) +
@@ -294,7 +294,7 @@ model.loadStudyStats(IDR_STUDIES_URL, function (stats) {
         console.log("Failed to filter studies stats by category");
       }
     }
-    let imageCounts = containers.map((row) => row["5D Images"]);
+    let imageCounts = containers.map((row) => row["image count"]);
     totalImages = imageCounts.reduce(
       (total, value) => total + parseInt(value, 10),
       0

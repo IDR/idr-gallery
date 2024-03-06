@@ -508,51 +508,58 @@ class StudiesModel {
   }
 
   loadStudyStats = function (url, callback) {
+
+    const queryJson = {
+      "resource": "image",
+      "query_details": {
+        "and_filters": [
+          {
+            "name": "name",
+            "value": "idr",
+            "operator": "contains",
+            "resource": "container"
+          }
+        ],
+        "or_filters": [],
+        "case_sensitive": false
+      }
+    };
+
+    const searchurl = SEARCH_ENGINE_URL + "resources/submitquery/containers/";
+
+    console.log("searchurl", searchurl)
     let self = this;
-    $.get(url, function (data) {
-      let tsvRows = data.split("\n");
-      let columns;
-      // read tsv => dicts
-      let rowsAsObj = tsvRows
-        .map(function (row, count) {
-          let values = row.split("\t");
-          if (count == 0) {
-            columns = values;
-            return;
-          }
-          if (values.length === 0) return;
-          let row_data = {};
-          for (let c = 0; c < values.length; c++) {
-            if (c < columns.length) {
-              row_data[columns[c]] = values[c];
-            }
-          }
-          return row_data;
-        })
-        .filter(Boolean);
+    
+    $.ajax({
+      type: "POST",
+      url: searchurl,
+      contentType: "application/json;charset=UTF-8",
+      dataType: "json",
+      data: JSON.stringify(queryJson),
+      success: function (data) {
+        console.log(data);
 
-      // Group rows by Study
-      let stats = {};
-      rowsAsObj.forEach((row) => {
-        let studyName = row["Study"];
-        if (!studyName) return;
-        let studyId = studyName.split("-")[0];
-        if (!stats[studyId]) {
-          stats[studyId] = [];
+        // Group rows by Study
+        let stats = {};
+        data.results.results.forEach((row) => {
+          // row is {id: 501, image count: 5931242, name: idr..., type: project, key_values: []}
+          let studyName = row["name"];
+          if (!studyName) return;
+          let studyId = studyName.split("-")[0];
+          if (!stats[studyId]) {
+            stats[studyId] = [];
+          }
+          stats[studyId].push(row);
+        });
+
+        self.studyStats = stats;
+        if (callback) {
+          callback(stats);
         }
-        stats[studyId].push(row);
-      });
-
-      self.studyStats = stats;
-
-      if (callback) {
-        callback(stats);
-      }
-    }).fail(function () {
-      console.log("Failed to load studies.tsv");
-      if (callback) {
-        callback();
-      }
+      },
+      error: function (XMLHttpRequest, textStatus, errorThrown) {
+        console.log("Failed to load study stats")
+      },
     });
   };
 }
