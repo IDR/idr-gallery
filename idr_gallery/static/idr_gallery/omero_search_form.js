@@ -24,14 +24,14 @@ const AND_CLAUSE_HTML = `
         </button>
     </div>
   </div>
-  <button type="button" class="addOR" href="#" title="Add OR condition to the group">
+  <button type="button" class="addOR button info small round" href="#" title="Add OR condition to the group">
     add 'OR'...
   </button>
 </div>`;
 
 const FORM_FOOTER_HTML = `
 <div>
-<button id="addAND" type="button" class="no-border" title="Add an 'AND' clause to the query">
+<button id="addAND" type="button" class="button info small round" title="Add an 'AND' clause to the query">
   add AND...
 </button>
 <label class="form-check-label" for="case_sensitive">
@@ -93,10 +93,10 @@ function mapNames(rsp, type, key, searchTerm, operator) {
   return rsp.map((resultObj) => {
     let name = resultObj.name;
     let desc = resultObj.description;
-    let attribute = key;
+    let attribute = NAME_KEY;
     // If we searched for Any, show all results.
     // "Attribute" form field will be filled (Name or Desc) if user picks item
-    if (attribute == "Any") {
+    if (key == "Any") {
       attribute = name.toLowerCase().includes(searchTerm)
         ? NAME_KEY
         : "description";
@@ -452,6 +452,56 @@ class OmeroSearchForm {
     return query;
   }
 
+  toJSON() {
+    // This returns a JSON representation of the form (preserving order etc)
+    let clauses = [];
+    let queryandnodes = document.querySelectorAll(
+      `#${this.formId} .and_clause`
+    );
+    for (let i = 0; i < queryandnodes.length; i++) {
+      let node = queryandnodes[i];
+      // handle each OR...
+      let ors = node.querySelectorAll(".or_clause");
+
+      let or_dicts = [...ors].map((orNode) => {
+        return {
+          key: orNode.querySelector(".keyFields").value,
+          value: orNode.querySelector(".valueFields").value,
+          operator: orNode.querySelector(".condition").value,
+          resource: this.findResourceForKey(
+            orNode.querySelector(".keyFields").value
+          ),
+        };
+      });
+      if (or_dicts.length > 1) {
+        clauses.push(or_dicts);
+      } else {
+        clauses.push(or_dicts[0]);
+      }
+    }
+    const case_sensitive = document.getElementById("case_sensitive").checked;
+    return { clauses: clauses, case_sensitive };
+  }
+
+  fromJSON(jsonQuery) {
+    console.log("fromJSON", jsonQuery);
+    // set complete state of form - opposite of toJSON()
+    document.getElementById("case_sensitive").checked =
+      jsonQuery.case_sensitive;
+    // Clear form and create new...
+    $(".clauses", this.$form).empty();
+    jsonQuery.clauses.forEach((clause) => {
+      if (!Array.isArray(clause)) {
+        this.addAnd(clause);
+      } else {
+        let $clause = this.addAnd(clause[0]);
+        clause.slice(1).forEach((or) => {
+          this.addOr($clause, or);
+        });
+      }
+    });
+  }
+
   getHumanReadableQuery() {
     // E.g. "Antibody equals seh1-fl antibody AND (Gene Symbol equals cdc42 OR Gene Symbol equals cdc25c)"
     let query = this.getCurrentQuery();
@@ -461,7 +511,7 @@ class OmeroSearchForm {
       .map(
         // show tooltip and truncate if value is too long
         (q) =>
-          `<strong>${q.name}</strong>
+          `<strong>${q.name || "Any Attribute"}</strong>
           ${q.operator}
           <strong ${q.value.length > maxLen ? `title="${q.value}"` : ""}>
             ${q.value.slice(0, maxLen)}${q.value.length > maxLen ? "..." : ""}
@@ -697,8 +747,8 @@ class OmeroSearchForm {
     if (query?.value) {
       $(".valueFields", $orClause).val(query.value);
     }
-    if (query?.condition) {
-      $(".condition", $orClause).val(query.condition);
+    if (query?.operator) {
+      $(".condition", $orClause).val(query.operator);
     }
   }
 
@@ -979,6 +1029,7 @@ class OmeroSearchForm {
       event.preventDefault();
       let $orClause = $(event.target).closest(".or_clause");
       this.removeOr($orClause);
+      this.formUpdated();
     });
 
     this.$form.on("change", ".keyFields", (event) => {
@@ -994,6 +1045,10 @@ class OmeroSearchForm {
 
     $("button[type='submit']", this.$form).on("click", (event) => {
       event.preventDefault();
+      this.formUpdated();
+    });
+
+    $("#case_sensitive", this.$form).on("click", (event) => {
       this.formUpdated();
     });
 

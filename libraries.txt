@@ -5,5 +5,13 @@ Managed manually
 ----------------
 
 Library: bootstrap
-Site http://getbootstrap.com
+Site: http://getbootstrap.com
+License: MIT
+
+Library: foundation
+Site: https://get.foundation/
+License: MIT
+
+Library: json-url
+Site: https://github.com/jsonurl/jsonurl-js
 License: MIT
