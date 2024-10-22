@@ -149,7 +149,7 @@ def search_engine_keys(request, value, exact_match=False):
     url += f"?value={value}"
     json_data = requests.get(url).json().get("data", [])
     if exact_match:
-        json_data = filter(lambda x: x.get("Value") == value, json_data)
+        json_data = list(filter(lambda x: x.get("Value").lower() == value.lower(), json_data))
     keys = [result.get("Key") for result in json_data]
     return keys
 
