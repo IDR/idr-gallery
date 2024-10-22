@@ -1,4 +1,4 @@
-from django.urls import re_path
+from django.urls import path, re_path
 from .gallery_settings import SUPER_CATEGORIES
 
 from . import views
@@ -17,6 +17,9 @@ urlpatterns = [
     # Supports e.g. ?project=1&project=2&screen=3
     re_path(r'^gallery-api/thumbnails/$', views.api_thumbnails,
             name='idr_gallery_api_thumbnails'),
+
+    # handle mapr URLs and redirect to search e.g. /mapr/gene/?value=PAX7
+    path('mapr/<slug:mapr_key>/', views.mapr, name='mapr'),
 ]
 
 for c in SUPER_CATEGORIES:
