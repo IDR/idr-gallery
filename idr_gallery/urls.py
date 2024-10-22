@@ -19,7 +19,10 @@ urlpatterns = [
             name='idr_gallery_api_thumbnails'),
 
     # handle mapr URLs and redirect to search e.g. /mapr/gene/?value=PAX7
+    # First URL is matched by mapr itself, so not used while mapr istalled...
     path('mapr/<slug:mapr_key>/', views.mapr, name='mapr'),
+    # ..so we add an alternative URL so we can test
+    path('mapr2gallery/<slug:mapr_key>/', views.mapr, name='mapr2gallery'),
 ]
 
 for c in SUPER_CATEGORIES:
