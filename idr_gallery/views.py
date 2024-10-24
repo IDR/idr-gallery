@@ -1,5 +1,5 @@
 
-from django.http import HttpResponseRedirect, HttpResponseBadRequest
+from django.http import HttpResponseRedirect, HttpResponseBadRequest, Http404
 from django.urls import reverse, NoReverseMatch
 import json
 import logging
@@ -110,7 +110,11 @@ def mapr(request, mapr_key):
     Redirect to search page with mapr_key as query
     """
     mapr_value = request.GET.get("value")
+    if mapr_value is None:
+        raise Http404("No value provided")
     keyval = find_mapr_key_value(request, mapr_key, mapr_value, True)
+    if keyval is None:
+        raise Http404("No matching key found")
     return redirect_with_params('idr_gallery_search',
                                 key=keyval[0],
                                 value=keyval[1],
