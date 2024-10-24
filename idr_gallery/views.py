@@ -108,10 +108,19 @@ def index(request, super_category=None, conn=None, **kwargs):
 def mapr(request, mapr_key):
     """
     Redirect to search page with mapr_key as query
+    E.g. /mapr/gene/?value=PAX7 -> /search/?key=Gene+Symbol&value=PAX7
     """
     mapr_value = request.GET.get("value")
     if mapr_value is None:
-        raise Http404("No value provided")
+        # e.g. /mapr/gene/ redirects to just /search/?key=Gene+Symbol
+        if mapr_settings and mapr_key in mapr_settings.MAPR_CONFIG:
+            # NB: this search for a single Key isn't exactly the same as
+            # e.g. mapr/gene/ which searches for all 'gene' keys.
+            default_key = mapr_settings.MAPR_CONFIG[mapr_key]["default"][0]
+            return redirect_with_params('idr_gallery_search',
+                                        key=default_key,
+                                        operator="contains")
+        raise Http404("Invalid mapr key")
     keyval = find_mapr_key_value(request, mapr_key, mapr_value, True)
     if keyval is None:
         raise Http404("No matching key found")
