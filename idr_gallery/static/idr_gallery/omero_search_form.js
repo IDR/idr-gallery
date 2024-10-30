@@ -168,14 +168,15 @@ async function getAutoCompleteResults(key, query, knownKeys, operator) {
   let kvp_url = `${SEARCH_ENGINE_URL}resources/all/searchvalues/?` + params;
   let urls = [kvp_url];
 
-  // We always check for Names...
-  // Need to load data from 2 end-points
-  let names_url = `${SEARCH_ENGINE_URL}resources/all/names/?value=${query}`;
-  // NB: Don't show auto-complete for Description yet - issues with 'equals' search
-  // if (key == "Any" || key == "description") {
-  //   names_url += `&use_description=true`;
-  // }
-  urls.push(names_url);
+  // We check for Names if "Any"
+  if (key == "Any") {
+    let names_url = `${SEARCH_ENGINE_URL}resources/all/names/?value=${query}`;
+    // NB: Don't show auto-complete for Description yet - issues with 'equals' search
+    // if (key == "Any" || key == "description") {
+    //   names_url += `&use_description=true`;
+    // }
+    urls.push(names_url);
+  }
 
   const promises = urls.map((p) => fetch(p).then((rsp) => rsp.json()));
   const responses = await Promise.all(promises);
