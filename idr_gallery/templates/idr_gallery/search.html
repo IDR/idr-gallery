@@ -102,6 +102,10 @@
     flex: auto 0 0;
     margin: 10px;
   }
+  #kvp_popover_content th h2 {
+    font-size: 15px;
+    margin: 0;
+  }
   #kvp_popover_content a {
     font-weight: normal;
     display: inline-block;
@@ -127,11 +131,11 @@
       width: 100%;
     }
   }
-  .map_ann tr {
+  .map_ann tbody tr {
     background: hsl(220,20%,95%);
     border: solid #ddd 1px;
   }
-  .map_ann td {
+  .map_ann td, .map_ann th {
     padding: 2px;
     background-color: hsl(220,20%,95%);
     width: 50%;
@@ -142,6 +146,9 @@
   .map_ann {
     padding: 5px;
     margin: 5px;
+  }
+  .map_ann table {
+    margin: 0;
   }
 </style>
 
@@ -289,7 +296,7 @@
         <a target="_blank" href="${BASE_URL}webclient/img_detail/${image_id}">
           Open Image in Viewer<i class="fas fa-eye"></i></a></div>`
     document.getElementById("popover_links").innerHTML = linkshtml;
-    
+
     let url = `https://idr.openmicroscopy.org/webclient/api/annotations/?type=map&image=${image_id}`;
     fetch(url)
       .then(response => response.json())
@@ -321,18 +328,32 @@
         // Populate experimenters within anns
         var anns = data.annotations.map(populate_experimenter);
 
+        // Replace namespace with label
+        var ns2menu = {};
+        Object.entries(MAPR_CONFIG).forEach(([key, obj]) => {
+          ns2menu[obj.ns] = obj.label;
+        });
+        console.log("ns2menu", ns2menu);
+
         // Update html...
         console.log("anns", anns);
         let html = anns.map(ann => {
           return `
             <div class="map_ann">
               <table>
+                <thead>
+                <tr title="${ann.ns}">
+                  <th colspan="2"><h2>${ns2menu[ann.ns] || ann.ns}</h2></th>
+                </tr>
+                </thead>
+                <tbody>
                 ${ann.values.map(v => {
                   return `<tr>
                     <td>${v[0]}</td>
                     <td>${v[1]}</td>
                   </tr>`
                 }).join("")}
+                </tbody>
               </table>
             </div>`
         });
@@ -340,6 +361,12 @@
         document.getElementById("popover_kvp").innerHTML = html.join("\n");
       });
   });
+
+  // load mapr config at the start...
+  window.MAPR_CONFIG = {};
+  let maprConigUrl = `https://idr.openmicroscopy.org/mapr/api/config/`;
+  fetch(maprConigUrl).then(response => response.json())
+  .then(data => {window.MAPR_CONFIG = data;});
 
 
   window.onpopstate = (event) => {
