@@ -284,7 +284,7 @@
 
   $(".resultsList").on("click", "a.thumblink", function(event){
     event.preventDefault();
-    document.getElementById("popover_kvp").innerHTML = "Loading Attributes...";
+    document.getElementById("popover_kvp").innerHTML = `<div style='padding:10px'>Loading Attributes...</div>`;
     document.getElementById("kvp_popover").showPopover();
 
     let image_id = event.target.dataset.image_id;
@@ -300,9 +300,7 @@
     let url = `https://idr.openmicroscopy.org/webclient/api/annotations/?type=map&image=${image_id}`;
     fetch(url)
       .then(response => response.json())
-      .then(data => {
-        console.log("annotations", data);
-        
+      .then(data => {        
         var experimenters = [];
         if (data.experimenters.length > 0) {
             // manipulate data...
@@ -333,10 +331,8 @@
         Object.entries(MAPR_CONFIG).forEach(([key, obj]) => {
           ns2menu[obj.ns] = obj.label;
         });
-        console.log("ns2menu", ns2menu);
 
         // Update html...
-        console.log("anns", anns);
         let html = anns.map(ann => {
           return `
             <div class="map_ann">
