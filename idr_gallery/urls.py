@@ -1,4 +1,4 @@
-from django.urls import path, re_path
+from django.urls import re_path
 from .gallery_settings import SUPER_CATEGORIES
 
 from . import views
@@ -20,9 +20,8 @@ urlpatterns = [
 
     # handle mapr URLs and redirect to search e.g. /mapr/gene/?value=PAX7
     # First URL is matched by mapr itself, so not used while mapr istalled...
-    path('mapr/<slug:mapr_key>/', views.mapr, name='mapr'),
-    # ..so we add an alternative URL so we can test
-    path('mapr2gallery/<slug:mapr_key>/', views.mapr, name='mapr2gallery'),
+    # we want a regex that matches mapr_key but not favicon
+    re_path(r'^mapr/(?P<mapr_key>(?!favicon)[\w]+)/$', views.mapr, name='mapr'),
 ]
 
 for c in SUPER_CATEGORIES:
