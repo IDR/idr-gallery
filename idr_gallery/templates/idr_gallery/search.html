@@ -297,7 +297,7 @@
           Open Image in Viewer<i class="fas fa-eye"></i></a></div>`
     document.getElementById("popover_links").innerHTML = linkshtml;
 
-    let url = `https://idr.openmicroscopy.org/webclient/api/annotations/?type=map&image=${image_id}`;
+    let url = `${BASE_URL}webclient/api/annotations/?type=map&image=${image_id}`;
     fetch(url)
       .then(response => response.json())
       .then(data => {        
@@ -360,7 +360,7 @@
 
   // load mapr config at the start...
   window.MAPR_CONFIG = {};
-  let maprConigUrl = `https://idr.openmicroscopy.org/mapr/api/config/`;
+  let maprConigUrl = `${BASE_URL}mapr/api/config/`;
   fetch(maprConigUrl).then(response => response.json())
   .then(data => {window.MAPR_CONFIG = data;});
 
