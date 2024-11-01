@@ -58,6 +58,88 @@
     border-radius: 10px;
     margin: 5px;
   }
+
+  .close {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    z-index: 100;
+    font-size: 2rem;
+    padding: 2px 9px;
+  }
+  .scrollable {
+    position: absolute;
+    inset: 0;
+    overflow: auto;
+    height: 100%;
+    z-index: 0;
+    padding: 5px;
+  }
+  #kvp_popover {
+    margin: auto;
+    position: fixed;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    width: 512px;
+    height: 75%;
+    overflow: auto;
+    box-shadow: 5px 4px 10px -5px #737373;
+  }
+  #kvp_popover_content {
+    color: hsl(210, 10%, 30%);
+    font-size: 12px;
+    background-color: hsl(220,20%,95%);
+    display: flex;
+    flex-direction: column;
+    z-index: 0;
+  }
+  #kvp_popover_content h2 {
+    font-size: 16px;
+    color: hsl(210, 10%, 30%);
+    inset: 0;
+    flex: auto 0 0;
+    margin: 10px;
+  }
+  #kvp_popover_content a {
+    font-weight: normal;
+    display: inline-block;
+    border: solid #ccc 1px;
+    padding: 5px;
+    border-radius: 10px;
+    background: rgba(256, 256, 256, 0.5);
+  }
+  #kvp_popover_content i.fas {
+    margin: 0 10px;
+  }
+  #popover_links {
+    flex: auto 0 0;
+    margin: 0 10px 10px 10px;
+  }
+  #popover_kvp {
+    flex: auto 1 1;
+    overflow: auto;
+  }
+
+  @media (max-width: 800px) {
+    #mypopover {
+      width: 100%;
+    }
+  }
+  .map_ann tr {
+    background: hsl(220,20%,95%);
+    border: solid #ddd 1px;
+  }
+  .map_ann td {
+    padding: 2px;
+    background-color: hsl(220,20%,95%);
+    width: 50%;
+    max-width: 50%;
+    overflow-wrap: break-word;
+  }
+  .map_ann {
+    padding: 5px;
+    margin: 5px;
+  }
 </style>
 
 <link rel="stylesheet" href="{% static 'idr_gallery/css/search_form_styles.css' %}?_={{VERSION}}" />
@@ -103,6 +185,15 @@
     <ul id="results" class="resultsList"></ul>
 </div>
 
+</div>
+
+<div id="kvp_popover" popover>
+  <button class="close" popovertarget="kvp_popover">&times;</button>
+  <div id="kvp_popover_content" class="scrollable">
+    <h2 id="popover_imagename">Image Name</h2>
+    <div id="popover_links"></div>
+    <div id="popover_kvp"></div>
+  </div>
 </div>
 
 <script>
@@ -179,6 +270,71 @@
 
   searchForm.on("ready", function(){
     searchFromUrl();
+  });
+
+  $(".resultsList").on("click", "a.thumblink", function(event){
+    event.preventDefault();
+    document.getElementById("popover_kvp").innerHTML = "Loading Attributes...";
+    document.getElementById("kvp_popover").showPopover();
+
+    let image_id = event.target.dataset.image_id;
+    let image_name = event.target.dataset.image_name;
+    document.getElementById("popover_imagename").innerHTML = image_name;
+    let linkshtml = `
+        <div><a target="_blank" href="${BASE_URL}webclient/?show=image-${image_id}">
+          Browse image metadata<i class="fas fa-info"></i></a>
+        <a target="_blank" href="${BASE_URL}webclient/img_detail/${image_id}">
+          Open Image in Viewer<i class="fas fa-eye"></i></a></div>`
+    document.getElementById("popover_links").innerHTML = linkshtml;
+    
+    let url = `https://idr.openmicroscopy.org/webclient/api/annotations/?type=map&image=${image_id}`;
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        console.log("annotations", data);
+        
+        var experimenters = [];
+        if (data.experimenters.length > 0) {
+            // manipulate data...
+            // make an object of eid: experimenter
+            experimenters = data.experimenters.reduce(function(prev, exp){
+                prev[exp.id + ""] = exp;
+                return prev;
+            }, {});
+        }
+
+        var populate_experimenter = function(ann) {
+            if (data.experimenters.length > 0) {
+                ann.owner = experimenters[ann.owner.id];
+            }
+            if (ann.link && ann.link.owner) {
+                ann.link.owner = experimenters[ann.link.owner.id];
+                // AddedBy IDs for filtering
+                ann.addedBy = [ann.link.owner.id];
+            }
+            return ann;
+        };
+
+        // Populate experimenters within anns
+        var anns = data.annotations.map(populate_experimenter);
+
+        // Update html...
+        console.log("anns", anns);
+        let html = anns.map(ann => {
+          return `<div class="row">
+            <div class="map_ann">
+              <table>
+                ${ann.values.map(v => {
+                  return `<tr>
+                    <td>${v[0]}</td>
+                    <td>${v[1]}</td>
+                  </tr>`
+                }).join("")}
+            </div>`
+        });
+
+        document.getElementById("popover_kvp").innerHTML = html.join("\n");
+      });
   });
 
 
