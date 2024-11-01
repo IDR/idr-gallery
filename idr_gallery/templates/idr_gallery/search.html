@@ -78,12 +78,14 @@
   #kvp_popover {
     margin: auto;
     position: fixed;
-    margin-right: 5px;
-    margin-bottom: 5px;
-    width: 512px;
-    height: 75%;
+    margin-right: 15px;
+    margin-bottom: 15px;
+    width: 400px;
+    height: 65%;
     overflow: auto;
     box-shadow: 5px 4px 10px -5px #737373;
+    border: solid 1px black;
+    border-radius: 10px;
   }
   #kvp_popover_content {
     color: hsl(210, 10%, 30%);
@@ -133,8 +135,9 @@
     padding: 2px;
     background-color: hsl(220,20%,95%);
     width: 50%;
-    max-width: 50%;
+    max-width: 100px;
     overflow-wrap: break-word;
+    overflow: hidden;
   }
   .map_ann {
     padding: 5px;
@@ -321,7 +324,7 @@
         // Update html...
         console.log("anns", anns);
         let html = anns.map(ann => {
-          return `<div class="row">
+          return `
             <div class="map_ann">
               <table>
                 ${ann.values.map(v => {
@@ -330,6 +333,7 @@
                     <td>${v[1]}</td>
                   </tr>`
                 }).join("")}
+              </table>
             </div>`
         });
 
