@@ -105,6 +105,9 @@
   }
   #kvp_popover_content a {
     font-weight: normal;
+  }
+  #popover_links a {
+    font-weight: normal;
     display: inline-block;
     border: solid #ccc 1px;
     padding: 5px;
@@ -343,7 +346,9 @@
                 ${ann.values.map(v => {
                   return `<tr>
                     <td>${v[0]}</td>
-                    <td>${v[1]}</td>
+                    <td>
+                      <a href="/search/?key=${encodeURIComponent(v[0])}&value=${encodeURIComponent(v[1])}&operator=equals&resource=image">${v[1]}</a>
+                    </td>
                   </tr>`
                 }).join("")}
                 </tbody>
