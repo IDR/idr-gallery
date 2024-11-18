@@ -150,6 +150,13 @@
   .map_ann table {
     margin: 0;
   }
+  .favion img {
+    border: 1px solid hsl(210, 8%, 65%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    vertical-align: middle;
+    width: 15px;
+    height: 15px;
+  }
 </style>
 
 <link rel="stylesheet" href="{% static 'idr_gallery/css/search_form_styles.css' %}?_={{VERSION}}" />
@@ -332,6 +339,23 @@
           ns2menu[obj.ns] = obj.label;
         });
 
+        // Combine e.g. "Gene Identifier" and following "Gene Identifier URL" into one
+        anns = anns.map((ann, i) => {
+          ann.values = ann.values.map((kv, idx) => {
+            if (ann.values[idx + 1] && ann.values[idx + 1][0] === kv[0] + " URL") {
+              let url = ann.values[idx + 1][1];
+              // Add URL to kvp
+              kv = [...kv, url];
+            }
+            return kv;
+          });
+          ann.values = ann.values.filter((kv, idx) => {
+            // if the previous kvp have URL, skip this one
+            return !(idx > 0 && ann.values[idx - 1][2]);
+          });
+          return ann;
+        });
+
         // Update html...
         let html = anns.map(ann => {
           return `
@@ -348,6 +372,9 @@
                     <td>${v[0]}</td>
                     <td>
                       <a href="/search/?key=${encodeURIComponent(v[0])}&value=${encodeURIComponent(v[1])}&operator=equals&resource=image">${v[1]}</a>
+                      ${v[2] ? `<span class='favicon'><a href="${v[2]}" target="_blank">
+                        <img src="/mapr/favicon/?u=${v[2]}">
+                      </a></span>` : ""}
                     </td>
                   </tr>`
                 }).join("")}
