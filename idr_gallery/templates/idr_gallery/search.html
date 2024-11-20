@@ -371,7 +371,9 @@
                   return `<tr>
                     <td>${v[0]}</td>
                     <td>
-                      <a href="/search/?key=${encodeURIComponent(v[0])}&value=${encodeURIComponent(v[1])}&operator=equals&resource=image">${v[1]}</a>
+                      <a title="Search for images with ${v[0]}: ${v[1]}" href="/search/?key=${encodeURIComponent(v[0])}&value=${encodeURIComponent(v[1])}&operator=equals&resource=image">
+                        ${v[1]}
+                      </a>
                       ${v[2] ? `<span class='favicon'><a href="${v[2]}" target="_blank">
                         <img src="/mapr/favicon/?u=${v[2]}">
                       </a></span>` : ""}

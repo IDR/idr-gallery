@@ -784,6 +784,7 @@ class OmeroSearchForm {
   submitSearch() {
     console.log("Submit search...");
     let query = this.getCurrentQuery();
+    console.log(JSON.stringify(query));
     if (!this.validateQuery(query)) {
       console.log("Form not valid");
       return;
