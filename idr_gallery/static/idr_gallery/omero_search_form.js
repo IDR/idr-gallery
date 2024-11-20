@@ -861,7 +861,10 @@ class OmeroSearchForm {
                 <div class="studyName" title="${title}">${title}</div>
             </div>
             <div class="studyImages">
-              <div style="margin-left: 20px">Open study: <a href="${BASE_URL}webclient/?show=${objType}-${objId}" target="_blank">${studyName}</a></div>
+              <div style="margin-left: 20px">
+                Images from study: <a href="${BASE_URL}webclient/?show=${objType}-${objId}" target="_blank" title="Open Study in webclient showing ALL images">
+                  ${studyName}</a>
+              </div>
               <ul></ul>
               <div class="studyImagesSpinner">
                 ${SPINNER_SVG}
