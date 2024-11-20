@@ -147,6 +147,9 @@
     position: relative;
     background-color: #ddd;
   }
+  .studyThumb img:hover {
+    border: solid 1px #1976d2;
+  }
   .imgLinks {
     position: absolute;
     background: transparent;
