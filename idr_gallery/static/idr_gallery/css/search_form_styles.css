@@ -148,7 +148,10 @@
     background-color: #ddd;
   }
   .studyThumb img:hover {
-    border: solid 4px #64a3e1;
+    border: solid 3px #64a3e1;
+  }
+  .studyThumb .selected img {
+    border: solid 5px #64a3e1;
   }
   .imgLinks {
     position: absolute;

@@ -293,6 +293,9 @@
     event.preventDefault();
     document.getElementById("popover_kvp").innerHTML = `<div style='padding:10px'>Loading Attributes...</div>`;
     document.getElementById("kvp_popover").showPopover();
+    let $thumb = $(event.target);
+    $(".studyThumb a").removeClass("selected");
+    $thumb.parents(".studyThumb").find("a").addClass("selected");
 
     let image_id = event.target.dataset.image_id;
     let image_name = event.target.dataset.image_name;
