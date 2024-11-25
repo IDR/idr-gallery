@@ -17,6 +17,11 @@ urlpatterns = [
     # Supports e.g. ?project=1&project=2&screen=3
     re_path(r'^gallery-api/thumbnails/$', views.api_thumbnails,
             name='idr_gallery_api_thumbnails'),
+
+    # handle mapr URLs and redirect to search e.g. /mapr/gene/?value=PAX7
+    # First URL is matched by mapr itself, so not used while mapr istalled...
+    # we want a regex that matches mapr_key but not favicon
+    re_path(r'^mapr/(?P<mapr_key>(?!favicon)[\w]+)/$', views.mapr, name='mapr'),
 ]
 
 for c in SUPER_CATEGORIES:

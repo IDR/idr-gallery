@@ -1,5 +1,5 @@
 
-from django.http import HttpResponseRedirect, HttpResponseBadRequest
+from django.http import HttpResponseRedirect, HttpResponseBadRequest, Http404
 from django.urls import reverse, NoReverseMatch
 import json
 import logging
@@ -56,7 +56,13 @@ def index(request, super_category=None, conn=None, **kwargs):
         if query:
             # if 'mapr' search, redirect to searchengine page
             if query.startswith("mapr_"):
-                keyval = find_mapr_key_value(request, query)
+                key_val = query.split(":", 1)
+                if len(key_val) < 2:
+                    keyval = None
+                else:
+                    mapr_key = key_val[0].replace("mapr_", "")
+                    mapr_value = key_val[1]
+                    keyval = find_mapr_key_value(request, mapr_key, mapr_value)
                 if keyval is not None:
                     # /search/?key=Gene+Symbol&value=pax6&operator=contains
                     # Use "contains" to be consistent with studies search below
@@ -99,35 +105,54 @@ def index(request, super_category=None, conn=None, **kwargs):
     return context
 
 
-def find_mapr_key_value(request, query):
-    key_val = query.split(":", 1)
-    if len(key_val) < 2:
-        return None
-    mapr_key = key_val[0].replace("mapr_", "")
-    mapr_value = key_val[1]
+def mapr(request, mapr_key):
+    """
+    Redirect to search page with mapr_key as query
+    E.g. /mapr/gene/?value=PAX7 -> /search/?key=Gene+Symbol&value=PAX7
+    """
+    mapr_value = request.GET.get("value")
+    if mapr_value is None:
+        # e.g. /mapr/gene/ redirects to just /search/?key=Gene+Symbol
+        if mapr_settings and mapr_key in mapr_settings.MAPR_CONFIG:
+            # NB: this search for a single Key isn't exactly the same as
+            # e.g. mapr/gene/ which searches for all 'gene' keys.
+            default_key = mapr_settings.MAPR_CONFIG[mapr_key]["default"][0]
+            return redirect_with_params('idr_gallery_search',
+                                        key=default_key,
+                                        operator="contains")
+        raise Http404("Invalid mapr key")
+    keyval = find_mapr_key_value(request, mapr_key, mapr_value, True)
+    if keyval is None:
+        raise Http404("No matching key found")
+    return redirect_with_params('idr_gallery_search',
+                                key=keyval[0],
+                                value=keyval[1],
+                                operator="equals")
+
+
+def find_mapr_key_value(request, mapr_key, mapr_value, exact_match=False):
     if mapr_settings and mapr_key in mapr_settings.MAPR_CONFIG:
-        if len(key_val) > 0:
-            # Key could be e.g. 'Gene Symbol' or 'Gene Identifier'
-            mapr_config = mapr_settings.MAPR_CONFIG
-            all_keys = mapr_config[mapr_key]["all"]
-            default_key = mapr_config[mapr_key]["default"][0]
-            # if multiple keys e.g. 'Gene Symbol' or 'Gene Identifier'
-            if len(all_keys) > 1:
-                # need to check which Key matches the Value...
-                matching_keys = search_engine_keys(request, mapr_value)
-                all_keys = [key for key in all_keys if key in matching_keys]
-            if len(all_keys) > 1 and default_key in all_keys:
-                mapann_key = default_key
-            elif len(all_keys) == 1:
-                mapann_key = all_keys[0]
-            else:
-                # no matches -> use default
-                mapann_key = default_key
+        # Key could be e.g. 'Gene Symbol' or 'Gene Identifier'
+        mapr_config = mapr_settings.MAPR_CONFIG
+        all_keys = mapr_config[mapr_key]["all"]
+        default_key = mapr_config[mapr_key]["default"][0]
+        # if multiple keys e.g. 'Gene Symbol' or 'Gene Identifier'
+        if len(all_keys) > 1:
+            # need to check which Key matches the Value...
+            matching_keys = search_engine_keys(request, mapr_value, exact_match)
+            all_keys = [key for key in all_keys if key in matching_keys]
+        if len(all_keys) > 1 and default_key in all_keys:
+            mapann_key = default_key
+        elif len(all_keys) == 1:
+            mapann_key = all_keys[0]
+        else:
+            # no matches -> use default
+            mapann_key = default_key
         return mapann_key, mapr_value
     return None
 
 
-def search_engine_keys(request, value):
+def search_engine_keys(request, value, exact_match=False):
     # find keys that are match the given value
     if settings.BASE_URL is not None:
         base_url = settings.BASE_URL
@@ -136,6 +161,8 @@ def search_engine_keys(request, value):
     url = f"{base_url}searchengine/api/v1/resources/image/searchvalues/"
     url += f"?value={value}"
     json_data = requests.get(url).json().get("data", [])
+    if exact_match:
+        json_data = list(filter(lambda x: x.get("Value").lower() == value.lower(), json_data))
     keys = [result.get("Key") for result in json_data]
     return keys
 
@@ -253,6 +280,11 @@ def api_thumbnails(request, conn=None, **kwargs):
     image_ids = {}
     for obj_type, ids in zip(['project', 'screen'], [project_ids, screen_ids]):
         for obj_id in ids:
+            try:
+                int(obj_id)
+            except ValueError:
+                logger.debug("api_thumbnails Invalid object ID %s" % obj_id)
+                continue
             images = _get_study_images(conn, obj_type, obj_id,
                                        tag_text="Study Example Image")
             if len(images) == 0:

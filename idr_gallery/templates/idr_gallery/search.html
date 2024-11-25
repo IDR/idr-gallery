@@ -164,6 +164,8 @@
       let operator = searchParams.get("operator") || "equals";
       searchForm.setKeyValueQuery({key, value, operator, resource});
       searchForm.submitSearch();
+    } else if (key) {
+      searchForm.setKeyValueQuery({key, value: "", operator: "contains", resource});
     }
     // 'hidden' support for ?advanced=true to show AND/OR buttons
     let advanced = searchParams.get("advanced");
