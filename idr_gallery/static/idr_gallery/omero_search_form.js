@@ -168,14 +168,15 @@ async function getAutoCompleteResults(key, query, knownKeys, operator) {
   let kvp_url = `${SEARCH_ENGINE_URL}resources/all/searchvalues/?` + params;
   let urls = [kvp_url];
 
-  // We always check for Names...
-  // Need to load data from 2 end-points
-  let names_url = `${SEARCH_ENGINE_URL}resources/all/names/?value=${query}`;
-  // NB: Don't show auto-complete for Description yet - issues with 'equals' search
-  // if (key == "Any" || key == "description") {
-  //   names_url += `&use_description=true`;
-  // }
-  urls.push(names_url);
+  // We check for Names if "Any"
+  if (key == "Any") {
+    let names_url = `${SEARCH_ENGINE_URL}resources/all/names/?value=${query}`;
+    // NB: Don't show auto-complete for Description yet - issues with 'equals' search
+    // if (key == "Any" || key == "description") {
+    //   names_url += `&use_description=true`;
+    // }
+    urls.push(names_url);
+  }
 
   const promises = urls.map((p) => fetch(p).then((rsp) => rsp.json()));
   const responses = await Promise.all(promises);
@@ -783,6 +784,7 @@ class OmeroSearchForm {
   submitSearch() {
     console.log("Submit search...");
     let query = this.getCurrentQuery();
+    console.log(JSON.stringify(query));
     if (!this.validateQuery(query)) {
       console.log("Form not valid");
       return;
@@ -855,12 +857,15 @@ class OmeroSearchForm {
         return `<li class="studyRow" data-name="${studyName}">
             <div class="studyColumns">
                 <div class="caret"><i class="fa fa-caret-right"></i></div>
-                <div class="studyId">
-                  <a href="${BASE_URL}webclient/?show=${objType}-${objId}" target="_blank">${studyId}</a></div>
+                <div class="studyId">${studyId}</div>
                 <div class="count">${count}</div>
                 <div class="studyName" title="${title}">${title}</div>
             </div>
             <div class="studyImages">
+              <div style="margin-left: 20px">
+                Images from study: <a href="${BASE_URL}webclient/?show=${objType}-${objId}" target="_blank" title="Open Study in webclient showing ALL images">
+                  ${studyName}</a>
+              </div>
               <ul></ul>
               <div class="studyImagesSpinner">
                 ${SPINNER_SVG}
@@ -938,8 +943,8 @@ class OmeroSearchForm {
       .map((img) => {
         // Each thumbnail links to image viewer. Hover menu links to viewer (eye) and webclient (i)
         return `<li class="studyThumb">
-          <a target="_blank" href="${BASE_URL}webclient/img_detail/${img.id}">
-            <img title="${img.name}" src="${BASE_URL}webclient/render_thumbnail/${img.id}/" loading="lazy" />
+          <a class="thumblink" data-image_id="${img.id}" data-image_name="${img.name}" target="_blank" href="${BASE_URL}webclient/img_detail/${img.id}">
+            <img data-image_id="${img.id}" data-image_name="${img.name}" title="${img.name}" src="${BASE_URL}webclient/render_thumbnail/${img.id}/" loading="lazy" />
           </a>
           <ul class="imgLinks">
             <li title="Browse image metadata">

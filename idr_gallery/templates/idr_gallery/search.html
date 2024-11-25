@@ -32,9 +32,6 @@
     max-height: 45px;
     max-width: 45px;
   }
-  table td {
-    white-space: nowrap;
-  }
   .filterMessage {
     font-size: 120%;
   }
@@ -57,6 +54,108 @@
     padding: 10px;
     border-radius: 10px;
     margin: 5px;
+  }
+
+  .close {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    z-index: 100;
+    font-size: 2rem;
+    padding: 2px 9px;
+  }
+  .scrollable {
+    position: absolute;
+    inset: 0;
+    overflow: auto;
+    height: 100%;
+    z-index: 0;
+    padding: 5px;
+  }
+  #kvp_popover {
+    margin: auto;
+    position: fixed;
+    margin-right: 15px;
+    margin-bottom: 15px;
+    width: 400px;
+    height: 65%;
+    overflow: auto;
+    box-shadow: 5px 4px 10px -5px #737373;
+    border: solid 1px black;
+    border-radius: 10px;
+  }
+  #kvp_popover_content {
+    color: hsl(210, 10%, 30%);
+    font-size: 12px;
+    background-color: hsl(220,20%,95%);
+    display: flex;
+    flex-direction: column;
+    z-index: 0;
+  }
+  #kvp_popover_content h2 {
+    font-size: 16px;
+    color: hsl(210, 10%, 30%);
+    inset: 0;
+    flex: auto 0 0;
+    margin: 10px;
+  }
+  #kvp_popover_content th h2 {
+    font-size: 15px;
+    margin: 0;
+  }
+  #kvp_popover_content a {
+    font-weight: normal;
+  }
+  #popover_links a {
+    font-weight: normal;
+    display: inline-block;
+    border: solid #ccc 1px;
+    padding: 5px;
+    border-radius: 10px;
+    background: rgba(256, 256, 256, 0.5);
+  }
+  #kvp_popover_content i.fas {
+    margin: 0 10px;
+  }
+  #popover_links {
+    flex: auto 0 0;
+    margin: 0 10px 10px 10px;
+  }
+  #popover_kvp {
+    flex: auto 1 1;
+    overflow: auto;
+  }
+
+  @media (max-width: 800px) {
+    #mypopover {
+      width: 100%;
+    }
+  }
+  .map_ann tbody tr {
+    background: hsl(220,20%,95%);
+    border: solid #ddd 1px;
+  }
+  .map_ann td, .map_ann th {
+    padding: 2px;
+    background-color: hsl(220,20%,95%);
+    width: 50%;
+    max-width: 100px;
+    overflow-wrap: break-word;
+    overflow: hidden;
+  }
+  .map_ann {
+    padding: 5px;
+    margin: 5px;
+  }
+  .map_ann table {
+    margin: 0;
+  }
+  .favion img {
+    border: 1px solid hsl(210, 8%, 65%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    vertical-align: middle;
+    width: 15px;
+    height: 15px;
   }
 </style>
 
@@ -103,6 +202,15 @@
     <ul id="results" class="resultsList"></ul>
 </div>
 
+</div>
+
+<div id="kvp_popover" popover>
+  <button class="close" popovertarget="kvp_popover">&times;</button>
+  <div id="kvp_popover_content" class="scrollable">
+    <h2 id="popover_imagename">Image Name</h2>
+    <div id="popover_links"></div>
+    <div id="popover_kvp"></div>
+  </div>
 </div>
 
 <script>
@@ -180,6 +288,115 @@
   searchForm.on("ready", function(){
     searchFromUrl();
   });
+
+  $(".resultsList").on("click", "a.thumblink", function(event){
+    event.preventDefault();
+    document.getElementById("popover_kvp").innerHTML = `<div style='padding:10px'>Loading Attributes...</div>`;
+    document.getElementById("kvp_popover").showPopover();
+    let $thumb = $(event.target);
+    $(".studyThumb a").removeClass("selected");
+    $thumb.parents(".studyThumb").find("a").addClass("selected");
+
+    let image_id = event.target.dataset.image_id;
+    let image_name = event.target.dataset.image_name;
+    document.getElementById("popover_imagename").innerHTML = image_name;
+    let linkshtml = `
+        <div><a target="_blank" href="${BASE_URL}webclient/?show=image-${image_id}">
+          Browse image metadata<i class="fas fa-info"></i></a>
+        <a target="_blank" href="${BASE_URL}webclient/img_detail/${image_id}">
+          Open Image in Viewer<i class="fas fa-eye"></i></a></div>`
+    document.getElementById("popover_links").innerHTML = linkshtml;
+
+    let url = `${BASE_URL}webclient/api/annotations/?type=map&image=${image_id}`;
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {        
+        var experimenters = [];
+        if (data.experimenters.length > 0) {
+            // manipulate data...
+            // make an object of eid: experimenter
+            experimenters = data.experimenters.reduce(function(prev, exp){
+                prev[exp.id + ""] = exp;
+                return prev;
+            }, {});
+        }
+
+        var populate_experimenter = function(ann) {
+            if (data.experimenters.length > 0) {
+                ann.owner = experimenters[ann.owner.id];
+            }
+            if (ann.link && ann.link.owner) {
+                ann.link.owner = experimenters[ann.link.owner.id];
+                // AddedBy IDs for filtering
+                ann.addedBy = [ann.link.owner.id];
+            }
+            return ann;
+        };
+
+        // Populate experimenters within anns
+        var anns = data.annotations.map(populate_experimenter);
+
+        // Replace namespace with label
+        var ns2menu = {};
+        Object.entries(MAPR_CONFIG).forEach(([key, obj]) => {
+          ns2menu[obj.ns] = obj.label;
+        });
+
+        // Combine e.g. "Gene Identifier" and following "Gene Identifier URL" into one
+        anns = anns.map((ann, i) => {
+          ann.values = ann.values.map((kv, idx) => {
+            if (ann.values[idx + 1] && ann.values[idx + 1][0] === kv[0] + " URL") {
+              let url = ann.values[idx + 1][1];
+              // Add URL to kvp
+              kv = [...kv, url];
+            }
+            return kv;
+          });
+          ann.values = ann.values.filter((kv, idx) => {
+            // if the previous kvp have URL, skip this one
+            return !(idx > 0 && ann.values[idx - 1][2]);
+          });
+          return ann;
+        });
+
+        // Update html...
+        let html = anns.map(ann => {
+          return `
+            <div class="map_ann">
+              <table>
+                <thead>
+                <tr title="${ann.ns}">
+                  <th colspan="2"><h2>${ns2menu[ann.ns] || ann.ns}</h2></th>
+                </tr>
+                </thead>
+                <tbody>
+                ${ann.values.map(v => {
+                  return `<tr>
+                    <td>${v[0]}</td>
+                    <td>
+                      <a title="Search for images with ${v[0]}: ${v[1]}" href="/search/?key=${encodeURIComponent(v[0])}&value=${encodeURIComponent(v[1])}&operator=equals&resource=image">
+                        ${v[1]}
+                      </a>
+                      ${v[2] ? `<span class='favicon'><a href="${v[2]}" target="_blank">
+                        <img src="/mapr/favicon/?u=${v[2]}">
+                      </a></span>` : ""}
+                    </td>
+                  </tr>`
+                }).join("")}
+                </tbody>
+              </table>
+            </div>`
+        });
+
+        document.getElementById("popover_kvp").innerHTML = html.join("\n");
+      });
+  });
+
+  // load mapr config at the start...
+  window.MAPR_CONFIG = {};
+  let maprConigUrl = `${BASE_URL}mapr/api/config/`;
+  fetch(maprConigUrl).then(response => response.json())
+  .then(data => {window.MAPR_CONFIG = data;});
 
 
   window.onpopstate = (event) => {
