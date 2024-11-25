@@ -1,3 +1,10 @@
+3.12.0 (November 2024)
+----------------------
+
+- Handle /mapr/KEY/ urls, redirect to search [#45](https://github.com/IDR/idr-gallery/pull/45)
+- Show a popup of image details for search results [#47](https://github.com/IDR/idr-gallery/pull/47)
+- Host 3rd-party JavaScript libraries within the app [#42](https://github.com/IDR/idr-gallery/pull/42)
+
 3.11.0 (October 2023)
 ---------------------
 
