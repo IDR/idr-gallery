@@ -1,3 +1,9 @@
+
+3.12.1 (November 2024)
+----------------------
+
+- Fix pypi publishing by updating workflows [#48](https://github.com/IDR/idr-gallery/pull/48)
+
 3.12.0 (November 2024)
 ----------------------
 
