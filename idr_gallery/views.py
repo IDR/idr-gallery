@@ -139,7 +139,8 @@ def find_mapr_key_value(request, mapr_key, mapr_value, exact_match=False):
         # if multiple keys e.g. 'Gene Symbol' or 'Gene Identifier'
         if len(all_keys) > 1:
             # need to check which Key matches the Value...
-            matching_keys = search_engine_keys(request, mapr_value, exact_match)
+            matching_keys = search_engine_keys(request, mapr_value,
+                                               exact_match)
             all_keys = [key for key in all_keys if key in matching_keys]
         if len(all_keys) > 1 and default_key in all_keys:
             mapann_key = default_key
@@ -162,7 +163,8 @@ def search_engine_keys(request, value, exact_match=False):
     url += f"?value={value}"
     json_data = requests.get(url).json().get("data", [])
     if exact_match:
-        json_data = list(filter(lambda x: x.get("Value").lower() == value.lower(), json_data))
+        json_data = list(filter(
+            lambda x: x.get("Value").lower() == value.lower(), json_data))
     keys = [result.get("Key") for result in json_data]
     return keys
 
