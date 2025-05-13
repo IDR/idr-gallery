@@ -1,5 +1,5 @@
 
-from django.http import HttpResponseRedirect, HttpResponseBadRequest, Http404
+from django.http import HttpResponseRedirect, HttpResponseBadRequest, Http404, HttpResponse
 from django.urls import reverse, NoReverseMatch
 import json
 import logging
@@ -7,7 +7,7 @@ import base64
 import urllib
 
 import omero
-from omero.rtypes import wrap, rlong
+from omero.rtypes import wrap, rlong, rstring
 from omeroweb.webclient.decorators import login_required, render_response
 from omeroweb.api.decorators import login_required as api_login_required
 from omeroweb.api.api_settings import API_MAX_LIMIT
@@ -102,6 +102,75 @@ def index(request, super_category=None, conn=None, **kwargs):
     settings_ctx = get_settings_as_context()
     context = {**context, **settings_ctx}
 
+    return context
+
+
+def _escape_chars_like(query):
+    escape_chars = {
+        "%": r"\%",
+        "_": r"\_",
+    }
+
+    for k, v in escape_chars.items():
+        query = query.replace(k, v)
+    return query
+
+
+@login_required()
+@render_response()
+def study_page(request, idrid, conn=None, **kwargs):
+
+    if len(idrid) != 7 or not idrid.startswith("idr") or not idrid[3:].isdigit():
+        raise Http404("Invalid IDR ID. IDR IDs should be in the form idrXXXX")
+    # find Project(s) or Screen(s) with this IDRID
+
+    query_service = conn.getQueryService()
+    params = omero.sys.ParametersI()
+    # params.theFilter = omero.sys.Filter()
+    # params.theFilter.limit = wrap(limit)
+    # params.theFilter.offset = wrap(offset)
+    # and_text_value = ""
+    # if tag_text is not None:
+    #     params.addString("tag_text", tag_text)
+    #     and_text_value = " and annotation.textValue = :tag_text"
+
+    print("idrid", idrid, _escape_chars_like("%s%%" % idrid), "%%%s%%" % idrid)
+
+    # params.addString("idrid", rstring(_escape_chars_like("%s%%" % idrid)))
+    # # params.addString("idrid", rstring(idrid))
+
+    # query = "select obj from Project as obj where obj.name like :idrid"
+
+    # objs = query_service.findAllByQuery(query, params, conn.SERVICE_OPTS)
+
+    objs = [p for p in conn.getObjects("Project") if p.name.startswith(idrid)]
+
+    if len(objs) == 0:
+        objs = [s for s in conn.getObjects("Screen") if s.name.startswith(idrid)]
+
+    print("objs", objs)
+
+    containers = []
+    for obj in objs:
+        containers.append({
+            "id": obj.id,
+            "name": obj.name,
+            "type": "Project" if obj.OMERO_CLASS == "Project" else "Screen",
+        })
+    if len(containers) == 0:
+        raise Http404("No Project or Screen found for %s" % idrid)
+
+    img_objects = []
+    for obj in containers:
+        img_objects.extend(_get_study_images(conn, obj["type"], obj["id"], tag_text="Study Example Image"))
+    images = [{"id": o.id.val, "name": o.name.val} for o in img_objects]
+
+    context = {
+        "template": "idr_gallery/idr_study.html",
+        "idr_id": idrid,
+        "containers": containers,
+        "images": images,
+    }
     return context
 
 
@@ -242,7 +311,7 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
         params.addString("tag_text", tag_text)
         and_text_value = " and annotation.textValue = :tag_text"
 
-    if obj_type == "project":
+    if obj_type.lower() == "project":
         query = "select i from Image as i"\
                 " left outer join i.datasetLinks as dl"\
                 " join dl.parent as dataset"\
@@ -252,7 +321,7 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
                 " join al.child as annotation"\
                 " where project.id = :id%s" % and_text_value
 
-    elif obj_type == "screen":
+    elif obj_type.lower() == "screen":
         query = ("select i from Image as i"
                  " left outer join i.wellSamples as ws"
                  " join ws.well as well"
