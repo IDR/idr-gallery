@@ -18,6 +18,7 @@ from . import gallery_settings as settings
 from .data.background_images import IDR_IMAGES, TISSUE_IMAGES, CELL_IMAGES
 from .data.tabs import TABS
 from .version import VERSION
+from .utils import get_image_info
 
 try:
     from omero_mapr import mapr_settings
@@ -122,33 +123,18 @@ def study_page(request, idrid, conn=None, **kwargs):
 
     if len(idrid) != 7 or not idrid.startswith("idr") or not idrid[3:].isdigit():
         raise Http404("Invalid IDR ID. IDR IDs should be in the form idrXXXX")
+    
     # find Project(s) or Screen(s) with this IDRID
-
-    query_service = conn.getQueryService()
-    params = omero.sys.ParametersI()
-    # params.theFilter = omero.sys.Filter()
-    # params.theFilter.limit = wrap(limit)
-    # params.theFilter.offset = wrap(offset)
-    # and_text_value = ""
-    # if tag_text is not None:
-    #     params.addString("tag_text", tag_text)
-    #     and_text_value = " and annotation.textValue = :tag_text"
-
-    print("idrid", idrid, _escape_chars_like("%s%%" % idrid), "%%%s%%" % idrid)
-
+    # query_service = conn.getQueryService()
+    # params = omero.sys.ParametersI()
     # params.addString("idrid", rstring(_escape_chars_like("%s%%" % idrid)))
-    # # params.addString("idrid", rstring(idrid))
-
     # query = "select obj from Project as obj where obj.name like :idrid"
-
     # objs = query_service.findAllByQuery(query, params, conn.SERVICE_OPTS)
 
+    # "like" search not working above. Just interate and check names!
     objs = [p for p in conn.getObjects("Project") if p.name.startswith(idrid)]
-
     if len(objs) == 0:
         objs = [s for s in conn.getObjects("Screen") if s.name.startswith(idrid)]
-
-    print("objs", objs)
 
     containers = []
     for obj in objs:
@@ -163,13 +149,25 @@ def study_page(request, idrid, conn=None, **kwargs):
     img_objects = []
     for obj in containers:
         img_objects.extend(_get_study_images(conn, obj["type"], obj["id"], tag_text="Study Example Image"))
+
+    if len(img_objects) == 0:
+        # None found with Tag - just load untagged image
+        img_objects = _get_study_images(conn, obj["type"], obj["id"])
     images = [{"id": o.id.val, "name": o.name.val} for o in img_objects]
+
+    # Use first image to get download & path info...
+    img_info = get_image_info(conn, images[0]["id"])
+    # data_location is "IDR" or "Github" or "BIA" or "Embassy_S3"
+    img_path, data_location, is_zarr = img_info
 
     context = {
         "template": "idr_gallery/idr_study.html",
         "idr_id": idrid,
         "containers": containers,
         "images": images,
+        "img_path": img_path,
+        "data_location": data_location,
+        "is_zarr": is_zarr,
     }
     return context
 
