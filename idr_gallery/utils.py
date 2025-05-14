@@ -2,6 +2,9 @@
 import omero
 
 
+BIA_URL = "https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/"
+
+
 def get_import_from_path(conn, imageId):
     query = "select fse from Fileset f \
         join f.usedFiles as fse \
@@ -29,10 +32,21 @@ def get_image_info(conn, image_id):
             kind = "Github"
         elif path.startswith("bia"):
             kind = "BIA"
-        elif path.startswith("https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data"):
+        elif path.startswith(BIA_URL):
             kind = "Embassy_S3"
-        zarr = "No"
-        if ".zarr" in path:
-            zarr = "Yes"
+        zarr = ".zarr" in path
         return (path, kind, zarr)
     return (None, None, None)
+
+
+# E.g. Publication DOI: "10.1091/mbc.E13-04-0221 https://doi.org/10.1091/mbc.E13-04-0221"
+# or License: "CC-BY-4.0 http://creativecommons.org/licenses/by/4.0/"
+def parse_kvp_with_link(key, kvps):
+    # values is a list to handle multiple values
+    value = kvps.get(key)[0] if kvps.get(key) else None
+    if value is None:
+        return None
+    return {
+        "name": value.split("http", 1)[0].strip(),
+        "link": "http" + value.split("http", 1)[1] if "http" in value else None
+    }

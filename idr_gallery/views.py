@@ -5,12 +5,14 @@ import json
 import logging
 import base64
 import urllib
+from collections import defaultdict
 
 import omero
 from omero.rtypes import wrap, rlong, rstring
 from omeroweb.webclient.decorators import login_required, render_response
 from omeroweb.api.decorators import login_required as api_login_required
 from omeroweb.api.api_settings import API_MAX_LIMIT
+from omeroweb.webclient.tree import marshal_annotations
 
 import requests
 
@@ -18,7 +20,7 @@ from . import gallery_settings as settings
 from .data.background_images import IDR_IMAGES, TISSUE_IMAGES, CELL_IMAGES
 from .data.tabs import TABS
 from .version import VERSION
-from .utils import get_image_info
+from .utils import get_image_info, BIA_URL, parse_kvp_with_link
 
 try:
     from omero_mapr import mapr_settings
@@ -136,15 +138,41 @@ def study_page(request, idrid, conn=None, **kwargs):
     if len(objs) == 0:
         objs = [s for s in conn.getObjects("Screen") if s.name.startswith(idrid)]
 
+    if len(objs) == 0:
+        raise Http404("No Project or Screen found for %s" % idrid)
+    
+    # E.g."idr0098-huang-octmos", "idr0098-huang-octmos/experimentA", then "B"
+    objs.sort(key=lambda x: (len(x.name), x.id))
+
+    # Use first object for KVPs
+    pids = None
+    sids = None
+    if objs[0].OMERO_CLASS == "Project":
+        pids = [objs[0].id]
+    else:
+        sids = [objs[0].id]
+    anns, experimenters = marshal_annotations(conn, project_ids=pids, screen_ids=sids,
+                                              ann_type="map")
+    kvps = defaultdict(list)
+    for ann in anns:
+        for kvp in ann["values"]:
+            kvps[kvp[0]].append(kvp[1])
+
+    # Choose Study Title first, then Publication Title
+    title_values = kvps.get("Study Title", kvps.get("Publication Title"))
     containers = []
     for obj in objs:
+        desc = obj.description
+        for token in ["Screen Description", "Project Description"]:
+            if token in desc:
+                desc = desc.split(token, 1)[1]
         containers.append({
             "id": obj.id,
             "name": obj.name,
+            "description": desc,
             "type": "Project" if obj.OMERO_CLASS == "Project" else "Screen",
+            "kvps": kvps,
         })
-    if len(containers) == 0:
-        raise Http404("No Project or Screen found for %s" % idrid)
 
     img_objects = []
     for obj in containers:
@@ -160,6 +188,18 @@ def study_page(request, idrid, conn=None, **kwargs):
     # data_location is "IDR" or "Github" or "BIA" or "Embassy_S3"
     img_path, data_location, is_zarr = img_info
 
+    download_url = None
+    bia_page = None
+    if data_location == "IDR":
+        # then link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
+        # e.g. idr0002-heriche-condensation
+        idrid_name = containers[0]["name"].split("/")[0]
+        download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
+
+    elif data_location == "Embassy_S3":
+        bia_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
+        bia_page = f"https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{bia_id}.html"
+
     context = {
         "template": "idr_gallery/idr_study.html",
         "idr_id": idrid,
@@ -168,7 +208,16 @@ def study_page(request, idrid, conn=None, **kwargs):
         "img_path": img_path,
         "data_location": data_location,
         "is_zarr": is_zarr,
+        "title": title_values[0] if title_values else None,
+        "download_url": download_url,
+        "bia_page": bia_page,
+        "authors": ",".join(kvps.get("Publication Authors", [])),
+        "publication": parse_kvp_with_link("Publication DOI", kvps),
+        "license": parse_kvp_with_link("License", kvps)
     }
+
+    settings_ctx = get_settings_as_context()
+    context = {**context, **settings_ctx}
     return context
 
 
