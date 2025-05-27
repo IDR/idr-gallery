@@ -152,7 +152,7 @@ def study_page(request, idrid, conn=None, **kwargs):
     else:
         sids = [objs[0].id]
     anns, experimenters = marshal_annotations(conn, project_ids=pids, screen_ids=sids,
-                                              ann_type="map")
+                                              ann_type="map", ns="idr.openmicroscopy.org/study/info")
     kvps = defaultdict(list)
     for ann in anns:
         for kvp in ann["values"]:
@@ -200,6 +200,14 @@ def study_page(request, idrid, conn=None, **kwargs):
         bia_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
         bia_page = f"https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{bia_id}.html"
 
+    KNOWN_KEYS = ["Publication Authors", "Study Title", "Publication Title", "Publication DOI", "Data DOI", "License", 
+                  "PubMed ID", "PMC ID", "Release Date",]
+    other_kvps = []
+    for k, v in kvps.items():
+        if k in KNOWN_KEYS:
+            continue
+        for value in v:
+            other_kvps.append([k, value])
     context = {
         "template": "idr_gallery/idr_study.html",
         "idr_id": idrid,
@@ -213,7 +221,12 @@ def study_page(request, idrid, conn=None, **kwargs):
         "bia_page": bia_page,
         "authors": ",".join(kvps.get("Publication Authors", [])),
         "publication": parse_kvp_with_link("Publication DOI", kvps),
-        "license": parse_kvp_with_link("License", kvps)
+        "data_doi": parse_kvp_with_link("Data DOI", kvps),
+        "license": parse_kvp_with_link("License", kvps),
+        "pubmed_id": parse_kvp_with_link("PubMed ID", kvps),
+        "pmc_id": parse_kvp_with_link("PMC ID", kvps),
+        "release_date": kvps.get("Release Date")[0] if "Release Date" in kvps else None,
+        "other_kvps": other_kvps,
     }
 
     settings_ctx = get_settings_as_context()

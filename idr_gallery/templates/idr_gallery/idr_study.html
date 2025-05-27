@@ -1,0 +1,96 @@
+
+{% extends "idr_gallery/base.html" %}
+
+{% block content %}
+
+<div class="row column" style="margin-top:25px">
+
+    <div class="small-12 medium-4 columns">
+        <h2>{{ idr_id }}</h2>
+
+        <!-- just show first image -->
+        {% with image=images.0 %}
+        <p>
+            <a title="Open image in Viewer" target="_blank" href="{% url 'webindex' %}img_detail/{{ image.id }}/"><img src="{% url 'webgateway_render_thumbnail' image.id %}" /></a>
+        </p>
+        {% endwith %}
+
+        {% if release_date %}
+            <p>Release Date: {{ release_date }}</p>
+        {% endif %}
+
+        {% if publication %}
+            <p>Publication DOI: <a href="{{ publication.link }}">{{ publication.name }}</a></p>
+        {% endif %}
+
+        {% if data_doi %}
+            <p>Data DOI: <a href="{{ data_doi.link }}">{{ data_doi.name }}</a></p>
+        {% endif %}
+
+        {% if license %}
+            <p>License: <a href="{{ license.link }}">{{ license.name }}</a></p>
+        {% endif %}
+
+        {% if pubmed_id %}
+            <p>PubMed ID: <a href="{{ pubmed_id.link }}">{{ pubmed_id.name }}</a></p>
+        {% endif %}
+
+        {% if pmc_id %}
+            <p>PMC ID: <a href="{{ pmc_id.link }}">{{ pmc_id.name }}</a></p>
+        {% endif %}
+
+        <hr>
+
+        {% for kvp in other_kvps %}
+            <p>{{ kvp.0 }}: {{ kvp.1 }}</p>
+        {% endfor %}
+
+        <!-- {% if images %}
+            <h3>Images</h3>
+            <ul>
+                {% for image in images %}
+                    <li><a href="{% url 'webindex' %}img_detail/{{ image.id }}/">{{ image.name }}</a></li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if containers %}
+            <h3>Containers</h3>
+            <ul>
+                {% for container in containers %}
+                    <li><a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a></li>
+                {% endfor %}
+            </ul>
+        {% endif %} -->
+    </div>
+
+    <div class="small-12 medium-8 columns">
+        <h1>{{ title }}</h1>
+
+        <p>{{ containers.0.description }}</p>
+
+        <p>{{ authors }}</p>
+
+        <h3>Browse Data in IDR</h3>
+
+        {% for container in containers %}
+            <p><a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a></p>
+        {% endfor %}
+
+        <!-- Image Path: {{ img_path }} <br>
+        Data Location: {{ data_location }} <br>
+        Is Zarr?: {{ is_zarr }} <br> -->
+
+        <h3>Download</h3>
+
+        {% if download_url %}
+        <p><a target="_blank" href="{{ download_url }}">Browse original data</a></p>
+        {% endif %}
+
+        {% if bia_page %}
+            <p><a target="_blank" href="{{ bia_page }}">Browse OME-Zarr data at the BioImage Archive</a></p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
