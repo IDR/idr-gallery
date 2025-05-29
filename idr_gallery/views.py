@@ -1,5 +1,5 @@
 
-from django.http import HttpResponseRedirect, HttpResponseBadRequest, Http404, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponseBadRequest, Http404, JsonResponse
 from django.urls import reverse, NoReverseMatch
 import json
 import logging
@@ -121,7 +121,7 @@ def _escape_chars_like(query):
 
 @login_required()
 @render_response()
-def study_page(request, idrid, conn=None, **kwargs):
+def study_page(request, idrid, format="html", conn=None, **kwargs):
 
     if len(idrid) != 7 or not idrid.startswith("idr") or not idrid[3:].isdigit():
         raise Http404("Invalid IDR ID. IDR IDs should be in the form idrXXXX")
@@ -133,7 +133,7 @@ def study_page(request, idrid, conn=None, **kwargs):
     # query = "select obj from Project as obj where obj.name like :idrid"
     # objs = query_service.findAllByQuery(query, params, conn.SERVICE_OPTS)
 
-    # "like" search not working above. Just interate and check names!
+    # "like" search not working above. Just iterate and check names!
     objs = [p for p in conn.getObjects("Project") if p.name.startswith(idrid)]
     if len(objs) == 0:
         objs = [s for s in conn.getObjects("Screen") if s.name.startswith(idrid)]
@@ -208,9 +208,18 @@ def study_page(request, idrid, conn=None, **kwargs):
             continue
         for value in v:
             other_kvps.append([k, value])
+
+    # For json-LD, return JSON-LD context
+    jsonld = marshal_jsonld(idrid, containers, kvps)
+    if format == "jsonld":
+        # Return JSON-LD format
+        return JsonResponse(jsonld, content_type="application/ld+json")
+
     context = {
         "template": "idr_gallery/idr_study.html",
+        "globus_origin_id": EMBL_EBI_PUBLIC_GLOBAS_ID,
         "idr_id": idrid,
+        "idrid_name": idrid_name,
         "containers": containers,
         "images": images,
         "img_path": img_path,
@@ -218,7 +227,7 @@ def study_page(request, idrid, conn=None, **kwargs):
         "is_zarr": is_zarr,
         "title": title_values[0] if title_values else None,
         "download_url": download_url,
-        "bia_page": bia_page,
+        "bia_id": bia_id,
         "authors": ",".join(kvps.get("Publication Authors", [])),
         "publication": parse_kvp_with_link("Publication DOI", kvps),
         "data_doi": parse_kvp_with_link("Data DOI", kvps),
@@ -227,11 +236,26 @@ def study_page(request, idrid, conn=None, **kwargs):
         "pmc_id": parse_kvp_with_link("PMC ID", kvps),
         "release_date": kvps.get("Release Date")[0] if "Release Date" in kvps else None,
         "other_kvps": other_kvps,
+        "jsonld": json.dumps(jsonld, indent=2),
     }
 
     settings_ctx = get_settings_as_context()
     context = {**context, **settings_ctx}
     return context
+
+
+def marshal_jsonld(idrid, containers, kvps):
+    license = parse_kvp_with_link("License", kvps)
+    titles = kvps.get("Study Title", kvps.get("Publication Title"))
+    jsonld = {
+        "@context": "https://schema.org/",
+        "@type": "Dataset",
+        "name": ". ".join(titles) if titles else "IDR Study %s" % idrid,
+        "description": containers[0]["description"],
+        "url": "https://idr.openmicroscopy.org/study/%s/" % idrid,
+        "license": license.get("link") if license else None,
+    }
+    return jsonld
 
 
 def mapr(request, mapr_key):
