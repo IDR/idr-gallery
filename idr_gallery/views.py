@@ -193,7 +193,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
     download_url = None
     bia_id = None
     idrid_name = containers[0]["name"].split("/")[0]
-    if data_location == "IDR":
+    if data_location == "IDR" or data_location == "Github":
         # then link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
         # e.g. idr0002-heriche-condensation
         download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
@@ -202,7 +202,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         bia_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
 
     KNOWN_KEYS = ["Publication Authors", "Study Title", "Publication Title", "Publication DOI", "Data DOI", "License", 
-                  "PubMed ID", "PMC ID", "Release Date",]
+                  "PubMed ID", "PMC ID", "Release Date", "External URL"]
     other_kvps = []
     for k, v in kvps.items():
         if k in KNOWN_KEYS:
@@ -236,6 +236,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         "pubmed_id": parse_kvp_with_link("PubMed ID", kvps),
         "pmc_id": parse_kvp_with_link("PMC ID", kvps),
         "release_date": kvps.get("Release Date")[0] if "Release Date" in kvps else None,
+        "external_urls": [prefix_http(url) for url in kvps.get("External URL", [])],
         "other_kvps": other_kvps,
         "jsonld": json.dumps(jsonld, indent=2),
     }
