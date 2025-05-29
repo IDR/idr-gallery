@@ -46,6 +46,10 @@ def parse_kvp_with_link(key, kvps):
     value = kvps.get(key)[0] if kvps.get(key) else None
     if value is None:
         return None
+    return split_link(value)
+
+
+def split_link(value):
     return {
         "name": value.split("http", 1)[0].strip(),
         "link": "http" + value.split("http", 1)[1] if "http" in value else None

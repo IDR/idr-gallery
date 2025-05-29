@@ -20,7 +20,7 @@ from . import gallery_settings as settings
 from .data.background_images import IDR_IMAGES, TISSUE_IMAGES, CELL_IMAGES
 from .data.tabs import TABS
 from .version import VERSION
-from .utils import get_image_info, BIA_URL, parse_kvp_with_link, prefix_http
+from .utils import get_image_info, BIA_URL, parse_kvp_with_link, prefix_http, split_link
 
 try:
     from omero_mapr import mapr_settings
@@ -165,7 +165,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
     containers = []
     for obj in objs:
         desc = obj.description
-        for token in ["Screen Description", "Project Description"]:
+        for token in ["Screen Description", "Project Description", "Experiment Description"]:
             if token in desc:
                 desc = desc.split(token, 1)[1]
         containers.append({
@@ -202,7 +202,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         bia_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
 
     KNOWN_KEYS = ["Publication Authors", "Study Title", "Publication Title", "Publication DOI", "Data DOI", "License", 
-                  "PubMed ID", "PMC ID", "Release Date", "External URL"]
+                  "PubMed ID", "PMC ID", "Release Date", "External URL", "Annotation File"]
     other_kvps = []
     for k, v in kvps.items():
         if k in KNOWN_KEYS:
@@ -237,6 +237,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         "pmc_id": parse_kvp_with_link("PMC ID", kvps),
         "release_date": kvps.get("Release Date")[0] if "Release Date" in kvps else None,
         "external_urls": [prefix_http(url) for url in kvps.get("External URL", [])],
+        "annotation_files": [split_link(link) for link in kvps.get("Annotation File", [])],
         "other_kvps": other_kvps,
         "jsonld": json.dumps(jsonld, indent=2),
     }

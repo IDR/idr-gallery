@@ -56,6 +56,12 @@
             <p>{{ kvp.0 }}: {{ kvp.1 }}</p>
         {% endfor %}
 
+        <hr>
+
+        {% for annotation_file in annotation_files %}
+            <p>Annotation File: <a href="{{ annotation_file.link }}">{{ annotation_file.name }}</a></p>
+        {% endfor %}
+
         <!-- {% if images %}
             <h3>Images</h3>
             <ul>
