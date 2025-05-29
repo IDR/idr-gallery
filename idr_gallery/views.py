@@ -30,6 +30,8 @@ except ImportError:
 logger = logging.getLogger(__name__)
 MAX_LIMIT = max(1, API_MAX_LIMIT)
 
+EMBL_EBI_PUBLIC_GLOBAS_ID = "47772002-3e5b-4fd3-b97c-18cee38d6df2"
+
 
 def redirect_with_params(viewname, **kwargs):
     """
@@ -189,16 +191,15 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
     img_path, data_location, is_zarr = img_info
 
     download_url = None
-    bia_page = None
+    bia_id = None
+    idrid_name = containers[0]["name"].split("/")[0]
     if data_location == "IDR":
         # then link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
         # e.g. idr0002-heriche-condensation
-        idrid_name = containers[0]["name"].split("/")[0]
         download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
 
     elif data_location == "Embassy_S3":
         bia_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
-        bia_page = f"https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{bia_id}.html"
 
     KNOWN_KEYS = ["Publication Authors", "Study Title", "Publication Title", "Publication DOI", "Data DOI", "License", 
                   "PubMed ID", "PMC ID", "Release Date",]
