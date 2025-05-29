@@ -50,3 +50,10 @@ def parse_kvp_with_link(key, kvps):
         "name": value.split("http", 1)[0].strip(),
         "link": "http" + value.split("http", 1)[1] if "http" in value else None
     }
+
+
+def prefix_http(url):
+    """Ensure the URL starts with http:// or https://."""
+    if not url.startswith(("http://", "https://")):
+        return "https://" + url
+    return url

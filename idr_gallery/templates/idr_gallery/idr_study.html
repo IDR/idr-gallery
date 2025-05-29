@@ -46,6 +46,10 @@
             <p>PMC ID: <a href="{{ pmc_id.link }}">{{ pmc_id.name }}</a></p>
         {% endif %}
 
+        {% for url in external_urls %}
+            <p>External URL: <a href="{{ url }}">{{ url }}</a></p>
+        {% endfor %}
+
         <hr>
 
         {% for kvp in other_kvps %}

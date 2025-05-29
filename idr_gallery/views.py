@@ -20,7 +20,7 @@ from . import gallery_settings as settings
 from .data.background_images import IDR_IMAGES, TISSUE_IMAGES, CELL_IMAGES
 from .data.tabs import TABS
 from .version import VERSION
-from .utils import get_image_info, BIA_URL, parse_kvp_with_link
+from .utils import get_image_info, BIA_URL, parse_kvp_with_link, prefix_http
 
 try:
     from omero_mapr import mapr_settings
