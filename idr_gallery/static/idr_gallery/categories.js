@@ -31,23 +31,6 @@ let getTooltipContent = (reference) => {
   return reference.querySelector(".idr_tooltip").innerHTML;
 };
 
-function renderStudyContainers(containers) {
-  return ["screen", "project"]
-    .map((objType) => {
-      let studies = containers[objType];
-      let count = studies.length;
-      if (count == 0) return;
-      // Link to first Project or Screen
-      return `<a target="_blank" href="${BASE_URL}webclient/?show=${
-        studies[studies.length - 1].objId
-      }">${count} ${objType == "project" ? "Experiment" : "Screen"}${
-        count === 1 ? "" : "s"
-      }</a>`;
-    })
-    .filter(Boolean)
-    .join(", ");
-}
-
 function studyHtml(study, studyObj) {
   let idrId = study.Name.split("-")[0];
   let authors = model.getStudyValue(study, "Publication Authors") || " ";
@@ -62,6 +45,9 @@ function studyHtml(study, studyObj) {
           }" data-authors="${authors}" data-title="${title}" data-idrid="${idrId}" data-obj_type="${
     study.type
   }" data-obj_id="${study.id}">
+            <a target="_blank" href="${BASE_URL}study/${idrId}/">
+              <div style="position: absolute; inset: 0"></div>
+            </a>
             <div class="idr_tooltip">
               <div style="float: right">
                 ${
@@ -70,7 +56,7 @@ function studyHtml(study, studyObj) {
                     : `<b> ${authors} et. al </b>`
                 }
               </div>
-              <div style="margin-bottom:5px">${idrId}</div>
+              <div style="margin-bottom:5px">${imageCount(idrId)}</div>
               <div style="width: 300px; display:flex">
                 <div style="width:96px; position: relative" title="Open image viewer">
                   <a class="viewer_link" target="_blank" href="${BASE_URL}webclient/img_detail/${
@@ -83,16 +69,13 @@ function studyHtml(study, studyObj) {
                   </a>
                 </div>
                 <div style="width:204px; margin-left: 7px">
-                  <div style="float: left">${renderStudyContainers(
-                    studyObj
-                  )}</div>
-                  <div style="float: right; font-weight: bold">${imageCount(
-                    idrId
-                  )}</div>
-                  <div style="clear: both"></div>
-                  <span title="${studyObj["description"]}">
-                    ${title}
-                  </span>
+                  <a target="_blank" href="${BASE_URL}study/${idrId}/">
+                    <div style="float: left">Study: ${idrId}</div>
+                    <div style="clear: both"></div>
+                    <span title="${studyObj["description"]}" style="font-weight: normal; color: #333;">
+                      ${title}
+                    </span>
+                  </a>
                 </div>
               </div>
             </div>
