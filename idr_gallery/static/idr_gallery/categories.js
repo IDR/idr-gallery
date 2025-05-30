@@ -45,7 +45,7 @@ function studyHtml(study, studyObj) {
           }" data-authors="${authors}" data-title="${title}" data-idrid="${idrId}" data-obj_type="${
     study.type
   }" data-obj_id="${study.id}">
-            <a target="_blank" href="${BASE_URL}study/${idrId}/">
+            <a class="studyThumbLink" target="_blank" href="${BASE_URL}study/${idrId}/">
               <div style="position: absolute; inset: 0"></div>
             </a>
             <div class="idr_tooltip">

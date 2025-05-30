@@ -241,6 +241,15 @@
     transition: opacity 1s;
   }
 
+  /* on mobile device, hide the thumbnail link 
+  since we want to use clicking on thumbnail to show popup
+  instead of taking you to another page */
+  @media (max-width: 640px) {
+    .studyThumbLink {
+      display: none;
+    }
+  }
+
   /* hide the white logo when parent has .dark */
   .dark .logo-hero {
     opacity: 0;
