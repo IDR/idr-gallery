@@ -30,7 +30,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 MAX_LIMIT = max(1, API_MAX_LIMIT)
 
-EMBL_EBI_PUBLIC_GLOBAS_ID = "47772002-3e5b-4fd3-b97c-18cee38d6df2"
+EMBL_EBI_PUBLIC_GLOBUS_ID = "47772002-3e5b-4fd3-b97c-18cee38d6df2"
 
 
 def redirect_with_params(viewname, **kwargs):
@@ -198,11 +198,15 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         # e.g. idr0002-heriche-condensation
         download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
 
-    elif data_location == "Embassy_S3":
+    if data_location == "Embassy_S3":
         bia_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
+    elif "BioStudies Accession" in kvps:
+        # the data isn't imported from BIA, but can still be downloaded from there
+        bia_link = parse_kvp_with_link("BioStudies Accession", kvps)["link"]
+        bia_id = "S-BIAD" + bia_link.split("/S-BIAD")[-1]
 
     KNOWN_KEYS = ["Publication Authors", "Study Title", "Publication Title", "Publication DOI", "Data DOI", "License", 
-                  "PubMed ID", "PMC ID", "Release Date", "External URL", "Annotation File"]
+                  "PubMed ID", "PMC ID", "Release Date", "External URL", "Annotation File", "BioStudies Accession"]
     other_kvps = []
     for k, v in kvps.items():
         if k in KNOWN_KEYS:
@@ -218,7 +222,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
 
     context = {
         "template": "idr_gallery/idr_study.html",
-        "globus_origin_id": EMBL_EBI_PUBLIC_GLOBAS_ID,
+        "globus_origin_id": EMBL_EBI_PUBLIC_GLOBUS_ID,
         "idr_id": idrid,
         "idrid_name": idrid_name,
         "containers": containers,
@@ -235,6 +239,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         "license": parse_kvp_with_link("License", kvps),
         "pubmed_id": parse_kvp_with_link("PubMed ID", kvps),
         "pmc_id": parse_kvp_with_link("PMC ID", kvps),
+        "bia_accession": parse_kvp_with_link("BioStudies Accession", kvps),
         "release_date": kvps.get("Release Date")[0] if "Release Date" in kvps else None,
         "external_urls": [prefix_http(url) for url in kvps.get("External URL", [])],
         "annotation_files": [split_link(link) for link in kvps.get("Annotation File", [])],

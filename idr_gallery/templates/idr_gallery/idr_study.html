@@ -46,6 +46,11 @@
             <p>PMC ID: <a href="{{ pmc_id.link }}">{{ pmc_id.name }}</a></p>
         {% endif %}
 
+        {% if bia_accession %}
+            <p>BioStudies Accession: <a href="{{ bia_accession.link }}">{{ bia_accession.name }}</a></p>
+        {% endif %}
+
+
         {% for url in external_urls %}
             <p>External URL: <a href="{{ url }}">{{ url }}</a></p>
         {% endfor %}
@@ -104,7 +109,7 @@
         <p>
             Data is available for download via 
             <a target="_blank" href="https://app.globus.org/file-manager?origin_id={{ globus_origin_id }}&origin_path=/pub/databases/IDR/{{ idrid_name }}">
-                Globas: {{idrid_name}}.
+                Globus: {{idrid_name}}.
             </a>
         </p>
         <p>
@@ -119,7 +124,7 @@
         {% endif %}
 
         {% if bia_id %}
-            <p>Browse and download OME-Zarr data at <a target="_blank" href="https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{{ bia_id }}.html">BioImage Archive: {{ bia_id }}</a></p>
+            <p>Browse and download data at <a target="_blank" href="https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{{ bia_id }}.html">BioImage Archive: {{ bia_id }}</a></p>
         {% endif %}
 
         <p>Download as <a href="{% url 'idr_gallery_study_jsonld' idr_id %}" target="_blank">JSON</a>.</p>
