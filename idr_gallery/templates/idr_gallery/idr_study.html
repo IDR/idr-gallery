@@ -11,6 +11,39 @@
         p {
             word-wrap: break-word;
         }
+
+        .gridcontainer {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+
+        .a, .b, .c {
+            padding: 1rem;
+        }
+
+        /* Layout for medium and larger screens */
+        @media (min-width: 768px) {
+            .gridcontainer {
+                grid-template-columns: 33.3% 66.6%;
+                grid-template-areas:
+                "a b"
+                "c b";
+            }
+
+            .a {
+                grid-area: a;
+            }
+
+            .b {
+                grid-area: b;
+            }
+
+            .c {
+                grid-area: c;
+            }
+        }
+
     </style>
 {% endblock %}
 
@@ -18,118 +51,105 @@
 
 <div class="row column" style="margin-top:25px">
 
-    <div class="small-12 medium-4 columns">
-        <h2>{{ idr_id }}</h2>
+    <div class="gridcontainer">
+        <div class="a">
+            <h2>{{ idr_id }}</h2>
 
-        <!-- just show first image -->
-        {% with image=images.0 %}
-        <p>
-            <a title="Open image in Viewer" target="_blank" href="{% url 'webindex' %}img_detail/{{ image.id }}/"><img src="{% url 'webgateway_render_thumbnail' image.id %}" /></a>
-        </p>
-        {% endwith %}
+            <!-- just show first image -->
+            {% with image=images.0 %}
+            <p>
+                <a title="Open image in Viewer" target="_blank" href="{% url 'webindex' %}img_detail/{{ image.id }}/"><img src="{% url 'webgateway_render_thumbnail' image.id %}" /></a>
+            </p>
+            {% endwith %}
 
-        {% if release_date %}
-            <p>Release Date: {{ release_date }}</p>
-        {% endif %}
+            {% if release_date %}
+                <p>Release Date: {{ release_date }}</p>
+            {% endif %}
 
-        {% if publication %}
-            <p>Publication DOI: <a href="{{ publication.link }}">{{ publication.name }}</a></p>
-        {% endif %}
+            {% if publication %}
+                <p>Publication DOI: <a href="{{ publication.link }}">{{ publication.name }}</a></p>
+            {% endif %}
 
-        {% if data_doi %}
-            <p>Data DOI: <a href="{{ data_doi.link }}">{{ data_doi.name }}</a></p>
-        {% endif %}
+            {% if data_doi %}
+                <p>Data DOI: <a href="{{ data_doi.link }}">{{ data_doi.name }}</a></p>
+            {% endif %}
 
-        {% if license %}
-            <p>License: <a href="{{ license.link }}">{{ license.name }}</a></p>
-        {% endif %}
+            {% if license %}
+                <p>License: <a href="{{ license.link }}">{{ license.name }}</a></p>
+            {% endif %}
 
-        {% if pubmed_id %}
-            <p>PubMed ID: <a href="{{ pubmed_id.link }}">{{ pubmed_id.name }}</a></p>
-        {% endif %}
+            {% if pubmed_id %}
+                <p>PubMed ID: <a href="{{ pubmed_id.link }}">{{ pubmed_id.name }}</a></p>
+            {% endif %}
 
-        {% if pmc_id %}
-            <p>PMC ID: <a href="{{ pmc_id.link }}">{{ pmc_id.name }}</a></p>
-        {% endif %}
+            {% if pmc_id %}
+                <p>PMC ID: <a href="{{ pmc_id.link }}">{{ pmc_id.name }}</a></p>
+            {% endif %}
 
-        {% for url in external_urls %}
-            <p>External URL: <a href="{{ url }}">{{ url }}</a></p>
-        {% endfor %}
+            {% for url in external_urls %}
+                <p style="margin-bottom: 0">External URL: <a href="{{ url }}">{{ url }}</a></p>
+            {% endfor %}
+        </div>
 
-        <hr>
+        <div class="b">
+            <h1>{{ title }}</h1>
 
-        {% for kvp in other_kvps %}
-            <p>{{ kvp.0 }}: {{ kvp.1 }}</p>
-        {% endfor %}
+            <p>{{ containers.0.description }}</p>
 
-        <hr>
+            <p>{{ authors }}</p>
 
-        {% for annotation_file in annotation_files %}
-            <p>Annotation File: <a href="{{ annotation_file.link }}">{{ annotation_file.name }}</a></p>
-        {% endfor %}
+            <h3>Browse Data in IDR</h3>
 
-        <!-- {% if images %}
-            <h3>Images</h3>
-            <ul>
-                {% for image in images %}
-                    <li><a href="{% url 'webindex' %}img_detail/{{ image.id }}/">{{ image.name }}</a></li>
-                {% endfor %}
-            </ul>
-        {% endif %}
+            {% for container in containers %}
+                <p><a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a></p>
+            {% endfor %}
 
-        {% if containers %}
-            <h3>Containers</h3>
-            <ul>
-                {% for container in containers %}
-                    <li><a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a></li>
-                {% endfor %}
-            </ul>
-        {% endif %} -->
+            <!-- Image Path: {{ img_path }} <br>
+            Data Location: {{ data_location }} <br>
+            Is Zarr?: {{ is_zarr }} <br> -->
+
+            <h3>Download</h3>
+
+            {% if download_url %}
+            <p>
+                Data is available for download via 
+                <a target="_blank" href="https://app.globus.org/file-manager?origin_id={{ globus_origin_id }}&origin_path=/pub/databases/IDR/{{ idrid_name }}">
+                    Globus: {{idrid_name}}.
+                </a>
+            </p>
+            <p>
+                To download individual files in your browser, you can
+                <a target="_blank" href="{{ download_url }}">browse original data</a>.
+            </p>
+
+            <p>
+                For more download options, including FTP, see the IDR
+                <a target="_blank" href="https://idr.openmicroscopy.org/about/download.html">Data download</a> page.
+            </p>
+            {% endif %}
+
+            {% if bia_id %}
+                <p>Data archived at <a target="_blank" href="https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{{ bia_id }}.html">BioImage Archive: {{ bia_id }}</a></p>
+            {% endif %}
+
+            <p>Download as <a href="{% url 'idr_gallery_study_jsonld' idr_id %}" target="_blank">JSON</a>.</p>
+
+        </div>
+        <div class="c">
+
+            {% for kvp in other_kvps %}
+                <p>{{ kvp.0 }}: {{ kvp.1 }}</p>
+            {% endfor %}
+
+            <hr>
+
+            {% for annotation_file in annotation_files %}
+                <p>Annotation File: <a href="{{ annotation_file.link }}">{{ annotation_file.name }}</a></p>
+            {% endfor %}
+
+        </div>
     </div>
 
-    <div class="small-12 medium-8 columns">
-        <h1>{{ title }}</h1>
-
-        <p>{{ containers.0.description }}</p>
-
-        <p>{{ authors }}</p>
-
-        <h3>Browse Data in IDR</h3>
-
-        {% for container in containers %}
-            <p><a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a></p>
-        {% endfor %}
-
-        <!-- Image Path: {{ img_path }} <br>
-        Data Location: {{ data_location }} <br>
-        Is Zarr?: {{ is_zarr }} <br> -->
-
-        <h3>Download</h3>
-
-        {% if download_url %}
-        <p>
-            Data is available for download via 
-            <a target="_blank" href="https://app.globus.org/file-manager?origin_id={{ globus_origin_id }}&origin_path=/pub/databases/IDR/{{ idrid_name }}">
-                Globus: {{idrid_name}}.
-            </a>
-        </p>
-        <p>
-            To download individual files in your browser, you can
-            <a target="_blank" href="{{ download_url }}">browse original data</a>.
-        </p>
-
-        <p>
-            For more download options, including FTP, see the IDR
-            <a target="_blank" href="https://idr.openmicroscopy.org/about/download.html">Data download</a> page.
-        </p>
-        {% endif %}
-
-        {% if bia_id %}
-            <p>Data archived at <a target="_blank" href="https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{{ bia_id }}.html">BioImage Archive: {{ bia_id }}</a></p>
-        {% endif %}
-
-        <p>Download as <a href="{% url 'idr_gallery_study_jsonld' idr_id %}" target="_blank">JSON</a>.</p>
-    </div>
 
 </div>
 {% endblock %}
