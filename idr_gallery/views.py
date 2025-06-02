@@ -239,7 +239,6 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         "license": parse_kvp_with_link("License", kvps),
         "pubmed_id": parse_kvp_with_link("PubMed ID", kvps),
         "pmc_id": parse_kvp_with_link("PMC ID", kvps),
-        "bia_accession": parse_kvp_with_link("BioStudies Accession", kvps),
         "release_date": kvps.get("Release Date")[0] if "Release Date" in kvps else None,
         "external_urls": [prefix_http(url) for url in kvps.get("External URL", [])],
         "annotation_files": [split_link(link) for link in kvps.get("Annotation File", [])],
