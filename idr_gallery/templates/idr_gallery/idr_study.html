@@ -22,6 +22,11 @@
             padding: 1rem;
         }
 
+        /* small screen means the single column is wider - room for thumbnail to float right */
+        .thumb_wrapper {
+            float: right;
+        }
+
         /* Layout for medium and larger screens */
         @media (min-width: 768px) {
             .gridcontainer {
@@ -42,6 +47,10 @@
             .c {
                 grid-area: c;
             }
+
+            .thumb_wrapper {
+                float: none;
+            }
         }
 
     </style>
@@ -57,7 +66,7 @@
 
             <!-- just show first image -->
             {% with image=images.0 %}
-            <p>
+            <p class="thumb_wrapper">
                 <a title="Open image in Viewer" target="_blank" href="{% url 'webindex' %}img_detail/{{ image.id }}/"><img src="{% url 'webgateway_render_thumbnail' image.id %}" /></a>
             </p>
             {% endwith %}
