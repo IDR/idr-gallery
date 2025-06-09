@@ -130,18 +130,24 @@
                 To download individual files in your browser, you can
                 <a target="_blank" href="{{ download_url }}">browse original data</a>.
             </p>
+            {% endif %}
 
+            <!-- If the data is 'mkngff' Zarr data, link to "alpha" BIA pages with Zarr viewers etc -->
+            {% if bia_ngff_id %}
+                <p>View OME-Zarr data and download at <a target="_blank" href="https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{{ bia_ngff_id }}.html">BioImage Archive: {{ bia_ngff_id }}</a>.</p>
+            {% elif bia_accession %}
+                <!-- Otherwise if BIA link in in KVPs, you can simply download from that page -->
+                <p>Data for this study is available at the <a target="_blank" href="{{ bia_accession.link }}">BioImage Archive: {{ bia_accession.name }}</a>.</p>
+            {% endif %}
+
+            <p>Download as <a href="{% url 'idr_gallery_study_jsonld' idr_id %}" target="_blank">JSON</a>.</p>
+
+            {% if download_url %}
             <p>
                 For more download options, including FTP, see the IDR
                 <a target="_blank" href="https://idr.openmicroscopy.org/about/download.html">Data download</a> page.
             </p>
             {% endif %}
-
-            {% if bia_id %}
-                <p>Data archived at <a target="_blank" href="https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{{ bia_id }}.html">BioImage Archive: {{ bia_id }}</a></p>
-            {% endif %}
-
-            <p>Download as <a href="{% url 'idr_gallery_study_jsonld' idr_id %}" target="_blank">JSON</a>.</p>
 
             {% for table_ann in table_anns %}
                 <p>OMERO.table ({{ table_ann.size }} bytes): <a target="_blank" href="{{ table_ann.bff_url }}">Open in Biofile Finder</a>.</p>
