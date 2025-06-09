@@ -148,10 +148,6 @@
                 <a target="_blank" href="https://idr.openmicroscopy.org/about/download.html">Data download</a> page.
             </p>
             {% endif %}
-
-            {% for table_ann in table_anns %}
-                <p>OMERO.table ({{ table_ann.size }} bytes): <a target="_blank" href="{{ table_ann.bff_url }}">Open in Biofile Finder</a>.</p>
-            {% endfor %}
         </div>
         <div class="c">
 

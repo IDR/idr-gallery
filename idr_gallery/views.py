@@ -212,31 +212,6 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         for value in v:
             other_kvps.append([k, value])
 
-    # NB: Experimental... let's use omero_biofilefinder to view OMERO.tables in BFF
-    table_anns = []
-    try:
-        from omero_biofilefinder.views import get_bff_url
-        for ann in objs[0].listAnnotations(ns=TABLE_NAMESPACE):
-            # reverse should work if the omero_biofilefinder app is installed
-            table_pq_url = reverse(
-                "omero_biofilefinder_table_to_parquet", kwargs={"ann_id": ann.id}
-            )
-            table_anns.append(
-                {
-                    "id": ann.id,
-                    "name": ann.getFile().getName(),
-                    "description": ann.getDescription(),
-                    "size": ann.getFile().getSize(),
-                    "created": ann.creationEventDate().strftime("%Y-%m-%d %H:%M:%S.%Z"),
-                    "bff_url": get_bff_url(
-                        request, table_pq_url, "omero_table.parquet", ext="parquet"
-                    ),
-                }
-            )
-    except ImportError:
-        # omero_biofilefinder not installed, so no BFF support
-        pass
-
     # For json-LD, return JSON-LD context
     jsonld = marshal_jsonld(idrid, containers, kvps)
     if format == "jsonld":
@@ -267,7 +242,6 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         "annotation_files": [split_link(link) for link in kvps.get("Annotation File", [])],
         "bia_accession": parse_kvp_with_link("BioStudies Accession", kvps),
         "other_kvps": other_kvps,
-        "table_anns": table_anns,
         "jsonld": json.dumps(jsonld, indent=2),
     }
 
