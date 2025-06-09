@@ -45,7 +45,7 @@ function studyHtml(study, studyObj) {
           }" data-authors="${authors}" data-title="${title}" data-idrid="${idrId}" data-obj_type="${
     study.type
   }" data-obj_id="${study.id}">
-            <a class="studyThumbLink" target="_blank" href="${BASE_URL}study/${idrId}/">
+            <a class="studyThumbLink" href="${BASE_URL}study/${idrId}/">
               <div style="position: absolute; inset: 0"></div>
             </a>
             <div class="idr_tooltip">
@@ -69,7 +69,7 @@ function studyHtml(study, studyObj) {
                   </a>
                 </div>
                 <div style="width:204px; margin-left: 7px">
-                  <a target="_blank" href="${BASE_URL}study/${idrId}/">
+                  <a href="${BASE_URL}study/${idrId}/">
                     <div style="float: left">Study: ${idrId}</div>
                     <div style="clear: both"></div>
                     <span title="${studyObj["description"]}" style="font-weight: normal; color: #333;">
