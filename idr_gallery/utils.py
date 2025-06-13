@@ -26,9 +26,10 @@ def get_image_info(conn, image_id):
             path.startswith("nfs/bioimage") or \
             path.startswith("idr/filesets") or \
             path.startswith("idr/tmp") or \
-            path.startswith("idr/incoming"):
+            path.startswith("uod/idr/incoming"):
             kind = "IDR"
-        elif path.startswith("uod/idr/metadata"):
+        elif path.startswith("uod/idr/metadata") or \
+            path.startswith("data/idr-metadata"):
             kind = "Github"
         elif path.startswith("bia"):
             kind = "BIA"
