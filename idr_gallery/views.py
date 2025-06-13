@@ -166,9 +166,9 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
     containers = []
     for obj in objs:
         desc = obj.description
-        for token in ["Screen Description", "Project Description", "Experiment Description"]:
-            if token in desc:
-                desc = desc.split(token, 1)[1]
+        for token in ["Screen", "Project", "Experiment", "Study"]:
+            if f"{token} Description" in desc:
+                desc = desc.split(f"{token} Description", 1)[1].strip()
         containers.append({
             "id": obj.id,
             "name": obj.name,
