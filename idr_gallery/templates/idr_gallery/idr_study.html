@@ -21,6 +21,12 @@
         .a, .b, .c {
             padding: 1rem;
         }
+        .a {
+            padding-bottom: 0
+        }
+        .c {
+            padding-top: 0
+        }
 
         /* small screen means the single column is wider - room for thumbnail to float right */
         .thumb_wrapper {
@@ -34,6 +40,8 @@
                 grid-template-areas:
                 "a b"
                 "c b";
+                /* make sure 'a' is no bigger than it's content */
+                grid-template-rows: auto 100%;
             }
 
             .a {
@@ -150,6 +158,8 @@
             {% endif %}
         </div>
         <div class="c">
+
+            <hr>
 
             {% for kvp in other_kvps %}
                 <p>{{ kvp.0 }}: {{ kvp.1 }}</p>
