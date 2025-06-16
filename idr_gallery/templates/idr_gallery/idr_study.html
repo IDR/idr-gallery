@@ -64,6 +64,10 @@
             }
         }
 
+        .debug {
+            display: none;
+        }
+
     </style>
 {% endblock %}
 
@@ -151,7 +155,7 @@
                 <p>Data for this study is available at the <a target="_blank" href="{{ bia_accession.link }}">BioImage Archive: {{ bia_accession.name }}</a>.</p>
             {% endif %}
 
-            <p>Download as <a href="{% url 'idr_gallery_study_jsonld' idr_id %}" target="_blank">JSON</a>.</p>
+            <p class="debug">Download as <a href="{% url 'idr_gallery_study_jsonld' idr_id %}" target="_blank">JSON</a>.</p>
 
             {% if download_url %}
             <p>
