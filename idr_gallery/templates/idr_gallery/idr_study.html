@@ -91,27 +91,27 @@
             {% endif %}
 
             {% if publication %}
-                <p>Publication DOI: <a href="{{ publication.link }}">{{ publication.name }}</a></p>
+                <p>Publication DOI: <a target="_blank" href="{{ publication.link }}">{{ publication.name }}</a></p>
             {% endif %}
 
             {% if data_doi %}
-                <p>Data DOI: <a href="{{ data_doi.link }}">{{ data_doi.name }}</a></p>
+                <p>Data DOI: <a target="_blank" href="{{ data_doi.link }}">{{ data_doi.name }}</a></p>
             {% endif %}
 
             {% if license %}
-                <p>License: <a href="{{ license.link }}">{{ license.name }}</a></p>
+                <p>License: <a target="_blank" href="{{ license.link }}">{{ license.name }}</a></p>
             {% endif %}
 
             {% if pubmed_id %}
-                <p>PubMed ID: <a href="{{ pubmed_id.link }}">{{ pubmed_id.name }}</a></p>
+                <p>PubMed ID: <a target="_blank" href="{{ pubmed_id.link }}">{{ pubmed_id.name }}</a></p>
             {% endif %}
 
             {% if pmc_id %}
-                <p>PMC ID: <a href="{{ pmc_id.link }}">{{ pmc_id.name }}</a></p>
+                <p>PMC ID: <a target="_blank" href="{{ pmc_id.link }}">{{ pmc_id.name }}</a></p>
             {% endif %}
 
             {% for url in external_urls %}
-                <p style="margin-bottom: 0">External URL: <a href="{{ url }}">{{ url }}</a></p>
+                <p style="margin-bottom: 0">External URL: <a target="_blank" href="{{ url }}">{{ url }}</a></p>
             {% endfor %}
         </div>
 
