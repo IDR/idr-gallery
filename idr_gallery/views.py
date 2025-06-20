@@ -1,5 +1,5 @@
 
-from django.http import HttpResponseRedirect, HttpResponseBadRequest, Http404
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, Http404
 from django.urls import reverse, NoReverseMatch
 import json
 import logging
@@ -309,3 +309,46 @@ def api_thumbnails(request, conn=None, **kwargs):
         except KeyError:
             logger.error("Thumbnail not available. (img id: %d)" % i)
     return rv
+
+
+@render_response()
+def biofile_finder(request, **kwargs):
+    # ?key=Gene+Symbol&value=pax6&operator=equals&container=idr0010-doil-dnadamage/screenA
+    container = request.GET.get("container")
+    key = request.GET.get("key")
+    value = request.GET.get("value")
+    operator = request.GET.get("operator", "equals")
+
+    payload = {
+        "resource": "image",
+        "query_details": {
+            "and_filters": [
+                {
+                    "name": key,
+                    "value": value,
+                    "operator": operator,
+                    "resource": "image"
+                },
+                {
+                    "name": "name",
+                    "value": container,
+                    "operator": "equals",
+                    "resource": "container"
+                }
+            ],
+            "or_filters": [],
+            "case_sensitive": False
+        },
+        "mode": "searchterms"
+    }
+
+    # get csv file from search engine...
+    if settings.BASE_URL is not None:
+        base_url = settings.BASE_URL
+    else:
+        base_url = request.build_absolute_uri(reverse('index'))
+    url = f"{base_url}searchengine/api/v1/resources/submitquery/"
+    url += "?return_bff=true"
+    csv_data = requests.post(url, data=json.dumps(payload))
+
+    return HttpResponse(csv_data.text, content_type="text/csv")
