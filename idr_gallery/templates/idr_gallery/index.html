@@ -23,7 +23,6 @@
 <script src="{% static 'idr_gallery/3rdparty/tippy/tippy_6.3.7.min.js' %}"></script>
 <link rel="stylesheet" href="{% static 'idr_gallery/3rdparty/tippy/backdrop_6.3.7.css' %}" />
 <link rel="stylesheet" href="{% static 'idr_gallery/3rdparty/tippy/light-border_6.3.7.css' %}" />
-<script type="module" src="https://cdn.jsdelivr.net/npm/bsky-embed/dist/bsky-embed.es.js" async></script>
 
 <style>
   body {
@@ -486,7 +485,7 @@
 </div>
 
 <div class="row horizontal" style="position: relative;">
-  <div class="small-12 medium-12 large-7 columns" style>
+  <div class="small-12 medium-12 large-8 columns" style>
     <div class="panel" id="tabs">
       <ul class="tabs" data-tabs id="example-tabs">
         {% for tab in TABS %}
@@ -520,18 +519,6 @@
         </div>
         {% endfor %}
       </div>
-    </div>
-  </div>
-
-  <div class="small-12 medium-12 large-5 columns">
-    <div class="panel" style="padding: 0">
-      <bsky-embed
-        username="openmicroscopy.org"
-        limit="5"
-        load-more="true"
-        custom-styles=".w-full {max-width: 90% !important;}"
-      >
-      </bsky-embed>
     </div>
   </div>
 
