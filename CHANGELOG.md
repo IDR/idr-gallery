@@ -1,10 +1,13 @@
 
+3.13.1 (June 2025)
+------------------
+
+- Fix release to pypi [#49](https://github.com/IDR/idr-gallery/pull/49)
+
 3.13.0 (June 2025)
 ------------------
 
 - Add study landing pages [#50](https://github.com/IDR/idr-gallery/pull/50)
-- Fix release to pypi [#49](https://github.com/IDR/idr-gallery/pull/49)
-
 
 3.12.1 (November 2024)
 ----------------------
