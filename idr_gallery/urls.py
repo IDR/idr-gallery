@@ -1,4 +1,4 @@
-from django.urls import re_path
+from django.urls import re_path, path
 from .gallery_settings import SUPER_CATEGORIES
 
 from . import views
@@ -6,6 +6,10 @@ from . import views
 urlpatterns = [
     # index 'home page' of the idr_gallery app
     re_path(r'^$', views.index, name='idr_gallery_index'),
+
+    path("study/<slug:idrid>/", views.study_page, name='idr_gallery_study'),
+    path("study/<slug:idrid>/json/", views.study_page, {"format":"jsonld"},
+         name='idr_gallery_study_jsonld'),
 
     # All settings as JSON
     re_path(r'^gallery_settings/$', views.gallery_settings),

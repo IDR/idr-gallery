@@ -2,6 +2,8 @@
 <html class="no-js" lang="en" dir="ltr">
 
     <head>
+        {% block head %}
+
         <meta charset="utf-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,6 +32,8 @@
 
         <script src="{% static 'idr_gallery/model.js' %}?_={{VERSION}}"></script>
         <link href="{% static 'idr_gallery/studies.css' %}?_={{VERSION}}" rel="stylesheet">
+
+        {% endblock %}
     </head>
 
     <body>
