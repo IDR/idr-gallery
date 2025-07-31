@@ -33,6 +33,7 @@ MAX_LIMIT = max(1, API_MAX_LIMIT)
 
 EMBL_EBI_PUBLIC_GLOBUS_ID = "47772002-3e5b-4fd3-b97c-18cee38d6df2"
 TABLE_NAMESPACE = "openmicroscopy.org/omero/bulk_annotations"
+BFF_URL = "https://bff.allencell.org/app"
 
 
 def redirect_with_params(viewname, **kwargs):
@@ -164,18 +165,21 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
 
     # Choose Study Title first, then Publication Title
     title_values = kvps.get("Study Title", kvps.get("Publication Title"))
+    bff_url = reverse("idr_gallery_submitquery_as_bff")
     containers = []
     for obj in objs:
         desc = obj.description
         for token in ["Screen", "Project", "Experiment", "Study"]:
             if f"{token} Description" in desc:
                 desc = desc.split(f"{token} Description", 1)[1].strip()
+        study_bff_url = f"{bff_url}?container={obj.name}"
         containers.append({
             "id": obj.id,
             "name": obj.name,
             "description": desc,
             "type": "Project" if obj.OMERO_CLASS == "Project" else "Screen",
             "kvps": kvps,
+            "bff_url": get_bff_url(request, study_bff_url, f"{obj.name}.csv", ext="csv")
         })
 
     img_objects = []
@@ -472,7 +476,7 @@ def api_thumbnails(request, conn=None, **kwargs):
 
 
 @render_response()
-def biofile_finder(request, **kwargs):
+def submitquery_as_bff(request, **kwargs):
     # ?key=Gene+Symbol&value=pax6&operator=equals&container=idr0010-doil-dnadamage/screenA
     container = request.GET.get("container")
     key = request.GET.get("key")
@@ -527,3 +531,18 @@ def biofile_finder(request, **kwargs):
     if request.GET.get("debug") == "true":
         content_type = "text/plain"
     return HttpResponse(csv_data.text, content_type=content_type)
+
+
+def get_bff_url(request, data_url, fname, ext="csv"):
+    """
+    We build config into query params for the BFF app
+    """
+    data_url = request.build_absolute_uri(data_url)
+    source = {
+        "uri": data_url,
+        "type": ext,
+        "name": fname,
+    }
+    s = urllib.parse.quote(json.dumps(source))
+    bff_url = f"{BFF_URL}?source={s}"
+    return bff_url

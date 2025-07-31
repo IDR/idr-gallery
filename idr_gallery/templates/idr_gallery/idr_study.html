@@ -125,7 +125,10 @@
             <h3>Browse Data in IDR</h3>
 
             {% for container in containers %}
-                <p><a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a></p>
+                <p>
+                    <a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a>
+                    | <a target="_blank" href="{{ container.bff_url }}">Open in BioFile Finder</a>
+                </p>
             {% endfor %}
 
             <!-- Image Path: {{ img_path }} <br>
