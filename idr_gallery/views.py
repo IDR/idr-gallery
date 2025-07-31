@@ -1,16 +1,19 @@
 
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, Http404
+
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, Http404, JsonResponse
 from django.urls import reverse, NoReverseMatch
 import json
 import logging
 import base64
 import urllib
+from collections import defaultdict
 
 import omero
-from omero.rtypes import wrap, rlong
+from omero.rtypes import wrap, rlong, rstring
 from omeroweb.webclient.decorators import login_required, render_response
 from omeroweb.api.decorators import login_required as api_login_required
 from omeroweb.api.api_settings import API_MAX_LIMIT
+from omeroweb.webclient.tree import marshal_annotations
 
 import requests
 
@@ -18,6 +21,7 @@ from . import gallery_settings as settings
 from .data.background_images import IDR_IMAGES, TISSUE_IMAGES, CELL_IMAGES
 from .data.tabs import TABS
 from .version import VERSION
+from .utils import get_image_info, BIA_URL, parse_kvp_with_link, prefix_http, split_link
 
 try:
     from omero_mapr import mapr_settings
@@ -26,6 +30,9 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 MAX_LIMIT = max(1, API_MAX_LIMIT)
+
+EMBL_EBI_PUBLIC_GLOBUS_ID = "47772002-3e5b-4fd3-b97c-18cee38d6df2"
+TABLE_NAMESPACE = "openmicroscopy.org/omero/bulk_annotations"
 
 
 def redirect_with_params(viewname, **kwargs):
@@ -103,6 +110,159 @@ def index(request, super_category=None, conn=None, **kwargs):
     context = {**context, **settings_ctx}
 
     return context
+
+
+def _escape_chars_like(query):
+    escape_chars = {
+        "%": r"\%",
+        "_": r"\_",
+    }
+
+    for k, v in escape_chars.items():
+        query = query.replace(k, v)
+    return query
+
+
+@login_required()
+@render_response()
+def study_page(request, idrid, format="html", conn=None, **kwargs):
+
+    if len(idrid) != 7 or not idrid.startswith("idr") or not idrid[3:].isdigit():
+        raise Http404("Invalid IDR ID. IDR IDs should be in the form idrXXXX")
+    
+    # find Project(s) or Screen(s) with this IDRID
+    # query_service = conn.getQueryService()
+    # params = omero.sys.ParametersI()
+    # params.addString("idrid", rstring(_escape_chars_like("%s%%" % idrid)))
+    # query = "select obj from Project as obj where obj.name like :idrid"
+    # objs = query_service.findAllByQuery(query, params, conn.SERVICE_OPTS)
+
+    # "like" search not working above. Just iterate and check names!
+    objs = [p for p in conn.getObjects("Project") if p.name.startswith(idrid)]
+    if len(objs) == 0:
+        objs = [s for s in conn.getObjects("Screen") if s.name.startswith(idrid)]
+
+    if len(objs) == 0:
+        raise Http404("No Project or Screen found for %s" % idrid)
+    
+    # E.g."idr0098-huang-octmos", "idr0098-huang-octmos/experimentA", then "B"
+    objs.sort(key=lambda x: (len(x.name), x.id))
+
+    # Use first object for KVPs
+    pids = None
+    sids = None
+    if objs[0].OMERO_CLASS == "Project":
+        pids = [objs[0].id]
+    else:
+        sids = [objs[0].id]
+    anns, experimenters = marshal_annotations(conn, project_ids=pids, screen_ids=sids,
+                                              ann_type="map", ns="idr.openmicroscopy.org/study/info")
+    kvps = defaultdict(list)
+    for ann in anns:
+        for kvp in ann["values"]:
+            kvps[kvp[0]].append(kvp[1])
+
+    # Choose Study Title first, then Publication Title
+    title_values = kvps.get("Study Title", kvps.get("Publication Title"))
+    containers = []
+    for obj in objs:
+        desc = obj.description
+        for token in ["Screen", "Project", "Experiment", "Study"]:
+            if f"{token} Description" in desc:
+                desc = desc.split(f"{token} Description", 1)[1].strip()
+        containers.append({
+            "id": obj.id,
+            "name": obj.name,
+            "description": desc,
+            "type": "Project" if obj.OMERO_CLASS == "Project" else "Screen",
+            "kvps": kvps,
+        })
+
+    img_objects = []
+    for obj in containers:
+        img_objects.extend(_get_study_images(conn, obj["type"], obj["id"], tag_text="Study Example Image"))
+
+    if len(img_objects) == 0:
+        # None found with Tag - just load untagged image
+        img_objects = _get_study_images(conn, obj["type"], obj["id"])
+    images = [{"id": o.id.val, "name": o.name.val} for o in img_objects]
+
+    # Use first image to get download & path info...
+    img_info = get_image_info(conn, images[0]["id"])
+    # data_location is "IDR" or "Github" or "BIA" or "Embassy_S3"
+    img_path, data_location, is_zarr = img_info
+
+    download_url = None
+    bia_ngff_id = None
+    idrid_name = containers[0]["name"].split("/")[0]
+    if data_location == "IDR" or data_location == "Github":
+        # then link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
+        # e.g. idr0002-heriche-condensation
+        download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
+
+    if data_location == "Embassy_S3":
+        # "mkngff" data is at https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/idr_ngff_data.html
+        bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
+
+    KNOWN_KEYS = ["Publication Authors", "Study Title", "Publication Title", "Publication DOI", "Data DOI", "License", 
+                  "PubMed ID", "PMC ID", "Release Date", "External URL", "Annotation File", "BioStudies Accession"]
+    other_kvps = []
+    for k, v in kvps.items():
+        if k in KNOWN_KEYS:
+            continue
+        for value in v:
+            other_kvps.append([k, value])
+
+    # For json-LD, return JSON-LD context
+    jsonld = marshal_jsonld(idrid, containers, kvps)
+    if format == "jsonld":
+        # Return JSON-LD format
+        return JsonResponse(jsonld, content_type="application/ld+json")
+
+    context = {
+        "template": "idr_gallery/idr_study.html",
+        "globus_origin_id": EMBL_EBI_PUBLIC_GLOBUS_ID,
+        "idr_id": idrid,
+        "idrid_name": idrid_name,
+        "containers": containers,
+        "images": images,
+        "img_path": img_path,
+        "data_location": data_location,
+        "is_zarr": is_zarr,
+        "title": title_values[0] if title_values else None,
+        "download_url": download_url,
+        "bia_ngff_id": bia_ngff_id,
+        "authors": ",".join(kvps.get("Publication Authors", [])),
+        "publication": parse_kvp_with_link("Publication DOI", kvps),
+        "data_doi": parse_kvp_with_link("Data DOI", kvps),
+        "license": parse_kvp_with_link("License", kvps),
+        "pubmed_id": parse_kvp_with_link("PubMed ID", kvps),
+        "pmc_id": parse_kvp_with_link("PMC ID", kvps),
+        "release_date": kvps.get("Release Date")[0] if "Release Date" in kvps else None,
+        "external_urls": [prefix_http(url) for url in kvps.get("External URL", [])],
+        "annotation_files": [split_link(link) for link in kvps.get("Annotation File", [])],
+        "bia_accession": parse_kvp_with_link("BioStudies Accession", kvps),
+        "other_kvps": other_kvps,
+        "jsonld": json.dumps(jsonld, indent=2),
+    }
+
+    settings_ctx = get_settings_as_context()
+    context = {**context, **settings_ctx}
+    return context
+
+
+def marshal_jsonld(idrid, containers, kvps):
+    license = parse_kvp_with_link("License", kvps)
+    titles = kvps.get("Study Title", kvps.get("Publication Title"))
+    jsonld = {
+        "@context": "https://schema.org/",
+        "@type": "Dataset",
+        "name": ". ".join(titles) if titles else "IDR Study %s" % idrid,
+        "description": containers[0]["description"],
+        "url": "https://idr.openmicroscopy.org/study/%s/" % idrid,
+        "license": license.get("link") if license else None,
+    }
+    return jsonld
 
 
 def mapr(request, mapr_key):
@@ -242,7 +402,7 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
         params.addString("tag_text", tag_text)
         and_text_value = " and annotation.textValue = :tag_text"
 
-    if obj_type == "project":
+    if obj_type.lower() == "project":
         query = "select i from Image as i"\
                 " left outer join i.datasetLinks as dl"\
                 " join dl.parent as dataset"\
@@ -252,7 +412,7 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
                 " join al.child as annotation"\
                 " where project.id = :id%s" % and_text_value
 
-    elif obj_type == "screen":
+    elif obj_type.lower() == "screen":
         query = ("select i from Image as i"
                  " left outer join i.wellSamples as ws"
                  " join ws.well as well"

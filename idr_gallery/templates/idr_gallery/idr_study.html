@@ -1,0 +1,186 @@
+
+{% extends "idr_gallery/base.html" %}
+
+{% block head %}
+  {{ block.super }}
+    <script type="application/ld+json">
+        {{ jsonld | safe }}
+    </script>
+
+    <style>
+        p {
+            word-wrap: break-word;
+        }
+
+        .gridcontainer {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+
+        .a, .b, .c {
+            padding: 1rem;
+        }
+        .a {
+            padding-bottom: 0
+        }
+        .c {
+            padding-top: 0
+        }
+
+        /* small screen means the single column is wider - room for thumbnail to float right */
+        .thumb_wrapper {
+            float: right;
+        }
+
+        /* Layout for medium and larger screens */
+        @media (min-width: 768px) {
+            .gridcontainer {
+                grid-template-columns: 33.3% 66.6%;
+                grid-template-areas:
+                "a b"
+                "c b";
+                /* make sure 'a' is no bigger than it's content */
+                grid-template-rows: auto 100%;
+            }
+
+            .a {
+                grid-area: a;
+            }
+
+            .b {
+                grid-area: b;
+            }
+
+            .c {
+                grid-area: c;
+            }
+
+            .thumb_wrapper {
+                float: none;
+            }
+            .a p:last-child {
+                margin-bottom: 0;
+            }
+        }
+
+        .debug {
+            display: none;
+        }
+
+    </style>
+{% endblock %}
+
+{% block content %}
+
+<div class="row column" style="margin-top:25px">
+
+    <div class="gridcontainer">
+        <div class="a">
+            <h2>{{ idr_id }}</h2>
+
+            <!-- just show first image -->
+            {% with image=images.0 %}
+            <p class="thumb_wrapper">
+                <a title="Open image in Viewer" target="_blank" href="{% url 'webindex' %}img_detail/{{ image.id }}/"><img src="{% url 'webgateway_render_thumbnail' image.id %}" /></a>
+            </p>
+            {% endwith %}
+
+            {% if release_date %}
+                <p>Release Date: {{ release_date }}</p>
+            {% endif %}
+
+            {% if publication %}
+                <p>Publication DOI: <a target="_blank" href="{{ publication.link }}">{{ publication.name }}</a></p>
+            {% endif %}
+
+            {% if data_doi %}
+                <p>Data DOI: <a href="{{ data_doi.link }}">{{ data_doi.name }}</a></p>
+            {% endif %}
+
+            {% if license %}
+                <p>License: <a target="_blank" href="{{ license.link }}">{{ license.name }}</a></p>
+            {% endif %}
+
+            {% if pubmed_id %}
+                <p>PubMed ID: <a target="_blank" href="{{ pubmed_id.link }}">{{ pubmed_id.name }}</a></p>
+            {% endif %}
+
+            {% if pmc_id %}
+                <p>PMC ID: <a target="_blank" href="{{ pmc_id.link }}">{{ pmc_id.name }}</a></p>
+            {% endif %}
+
+            {% for url in external_urls %}
+                <p style="margin-bottom: 0">External URL: <a target="_blank" href="{{ url }}">{{ url }}</a></p>
+            {% endfor %}
+        </div>
+
+        <div class="b">
+            <h1>{{ title }}</h1>
+
+            <p>{{ containers.0.description }}</p>
+
+            <p>{{ authors }}</p>
+
+            <h3>Browse Data in IDR</h3>
+
+            {% for container in containers %}
+                <p><a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a></p>
+            {% endfor %}
+
+            <!-- Image Path: {{ img_path }} <br>
+            Data Location: {{ data_location }} <br>
+            Is Zarr?: {{ is_zarr }} <br> -->
+
+            <h3>Download</h3>
+
+            {% if download_url %}
+            <p>
+                Data is available for download via 
+                <a target="_blank" href="https://app.globus.org/file-manager?origin_id={{ globus_origin_id }}&origin_path=/pub/databases/IDR/{{ idrid_name }}">
+                    Globus: {{idrid_name}}.
+                </a>
+            </p>
+            <p>
+                To download individual files in your browser, you can
+                <a target="_blank" href="{{ download_url }}">browse original data</a>.
+            </p>
+            {% endif %}
+
+            <!-- If the data is 'mkngff' Zarr data, link to "alpha" BIA pages with Zarr viewers etc -->
+            {% if bia_ngff_id %}
+                <p>View OME-Zarr data and download at <a target="_blank" href="https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{{ bia_ngff_id }}.html">BioImage Archive: {{ bia_ngff_id }}</a>.</p>
+            {% elif bia_accession %}
+                <!-- Otherwise if BIA link in in KVPs, you can simply download from that page -->
+                <p>Data for this study is available at the <a target="_blank" href="{{ bia_accession.link }}">BioImage Archive: {{ bia_accession.name }}</a>.</p>
+            {% endif %}
+
+            <p class="debug">Download as <a href="{% url 'idr_gallery_study_jsonld' idr_id %}" target="_blank">JSON</a>.</p>
+
+            {% if download_url %}
+            <p>
+                For more download options, including FTP, see the IDR
+                <a target="_blank" href="https://idr.openmicroscopy.org/about/download.html">Data download</a> page.
+            </p>
+            {% endif %}
+        </div>
+        <div class="c">
+
+            <hr>
+
+            {% for kvp in other_kvps %}
+                <p>{{ kvp.0 }}: {{ kvp.1 }}</p>
+            {% endfor %}
+
+            <hr>
+
+            {% for annotation_file in annotation_files %}
+                <p>Annotation File: <a href="{{ annotation_file.link }}">{{ annotation_file.name }}</a></p>
+            {% endfor %}
+
+        </div>
+    </div>
+
+
+</div>
+{% endblock %}
