@@ -159,7 +159,7 @@ Release process
 
 - occasionally update `totalImages` and other fallback counts in loadStudyStats()
 - review and update the `CHANGELOG <https://github.com/ome/omero-gallery/blob/master/CHANGELOG.md>`_
-- run ``bumpversion release`` to remove the dev suffix and create a signed tag
+- run ``bumpversion --new-version 3.13.0 release`` to create a signed tag with the specified version
 - run ``bumpversion --no-tag patch`` to bump the version to the next dev suffix
 - push the newly created tag and ``master`` to ``origin``. e.g. ``git push origin master v3.3.3``
 - the GitHub action build for the tag includes a PyPI deployment step, so no need to deploy on PyPI manually
@@ -172,4 +172,4 @@ License
 Copyright
 ---------
 
-2016-2023, The Open Microscopy Environment
+2016-2025, The Open Microscopy Environment

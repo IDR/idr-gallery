@@ -479,23 +479,35 @@ def biofile_finder(request, **kwargs):
     value = request.GET.get("value")
     operator = request.GET.get("operator", "equals")
 
+    and_filters = []
+
+    if container is not None:
+        # container is e.g. "idr0010-doil-dnadamage/screenA"
+        and_filters.append({
+            "name": "name",
+            "value": container,
+            "operator": "equals",
+            "resource": "container"
+        })
+
+    if key is not None and value is not None and operator is not None:
+        and_filters.append({
+            "name": key,
+            "value": value,
+            "operator": operator,
+            "resource": "image"
+        })
+
+    if len(and_filters) == 0:
+        return HttpResponseBadRequest(
+            "query by key and/or container, e.g. "
+            "?key=Gene+Symbol&value=pax6&operator=equals&container=idr0010-doil-dnadamage/screenA")
+
+
     payload = {
         "resource": "image",
         "query_details": {
-            "and_filters": [
-                {
-                    "name": key,
-                    "value": value,
-                    "operator": operator,
-                    "resource": "image"
-                },
-                {
-                    "name": "name",
-                    "value": container,
-                    "operator": "equals",
-                    "resource": "container"
-                }
-            ],
+            "and_filters": and_filters,
             "or_filters": [],
             "case_sensitive": False
         },
@@ -511,4 +523,7 @@ def biofile_finder(request, **kwargs):
     url += "?return_bff=true"
     csv_data = requests.post(url, data=json.dumps(payload))
 
-    return HttpResponse(csv_data.text, content_type="text/csv")
+    content_type="text/csv"
+    if request.GET.get("debug") == "true":
+        content_type = "text/plain"
+    return HttpResponse(csv_data.text, content_type=content_type)
