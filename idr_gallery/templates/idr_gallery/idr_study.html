@@ -127,7 +127,21 @@
             {% for container in containers %}
                 <p>
                     <a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a>
-                    | <a target="_blank" href="{{ container.bff_url }}">Open in BioFile Finder</a>
+                </p>
+            {% endfor %}
+
+            <h3>Open in BioFile Finder</h3>
+
+            <p>NB: currently only the first 1000 images are loaded into BioFile Finder.</p>
+
+            {% for container in containers %}
+                <p>
+                    <a target="_blank" href="{{ container.bff_url }}">{{ container.name }}</a>
+                    {% if "experiment" in container.name or "screen" in container.name %}
+                        <!-- just images from that container -->
+                    {% else %}
+                        (all images)
+                    {% endif %}
                 </p>
             {% endfor %}
 
