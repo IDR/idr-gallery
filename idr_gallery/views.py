@@ -106,6 +106,8 @@ def index(request, super_category=None, conn=None, **kwargs):
         context['category'] = super_category
     context["TABS"] = TABS
     context["VERSION"] = VERSION
+    context["BFF_URL"] = BFF_URL
+    context["submitquery_as_bff"] = request.build_absolute_uri(reverse("idr_gallery_submitquery_as_bff"))
 
     settings_ctx = get_settings_as_context()
     context = {**context, **settings_ctx}
