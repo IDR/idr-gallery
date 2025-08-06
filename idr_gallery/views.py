@@ -167,14 +167,22 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
 
     # Choose Study Title first, then Publication Title
     title_values = kvps.get("Study Title", kvps.get("Publication Title"))
-    bff_url = reverse("idr_gallery_submitquery_as_bff")
+    #bff_url = reverse("idr_gallery_submitquery_as_bff")
+    if settings.BASE_URL is not None:
+        base_url = settings.BASE_URL
+    else:
+        base_url = request.build_absolute_uri(reverse('index'))
+    bff_url = f"{base_url}searchengine/api/v1/resources/container_bff_data/"
     containers = []
     for obj in objs:
         desc = obj.description
         for token in ["Screen", "Project", "Experiment", "Study"]:
             if f"{token} Description" in desc:
                 desc = desc.split(f"{token} Description", 1)[1].strip()
-        study_bff_url = f"{bff_url}?container={obj.name}"
+        otype = "project" if obj.OMERO_CLASS == "Project" else "screen"
+        study_bff_url = f"{bff_url}?container_name={obj.name}&container_type={otype}"
+        # https://idr-testing.openmicroscopy.org/searchengine//api/v1/resources/container_bff_data/?container_name=idr0164-alzubi-hdbr%2FexperimentA&container_type=project
+
         containers.append({
             "id": obj.id,
             "name": obj.name,
