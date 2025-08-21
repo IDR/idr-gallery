@@ -134,7 +134,9 @@
 
             {% for container in containers %}
                 <p>
-                    <a target="_blank" href="{{ container.bff_url }}">{{ container.name }}</a>
+                    {{ container.name }}:
+                    <a target="_blank" href="{{ container.bff_url_csv }}">Open CSV</a> |
+                    <a target="_blank" href="{{ container.bff_url_parquet }}">Open Parquet</a>
                     {% if "experiment" in container.name or "screen" in container.name %}
                         <!-- just images from that container -->
                     {% else %}
