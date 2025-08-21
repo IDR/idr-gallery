@@ -180,7 +180,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
             if f"{token} Description" in desc:
                 desc = desc.split(f"{token} Description", 1)[1].strip()
         otype = "project" if obj.OMERO_CLASS == "Project" else "screen"
-        study_bff_url = f"{bff_url}?container_name={obj.name}&container_type={otype}"
+        study_bff_url = f"{bff_url}?container_name={obj.name}&container_type={otype}&file_type=parquet"
         # https://idr-testing.openmicroscopy.org/searchengine//api/v1/resources/container_bff_data/?container_name=idr0164-alzubi-hdbr%2FexperimentA&container_type=project
 
         containers.append({
@@ -189,7 +189,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
             "description": desc,
             "type": "Project" if obj.OMERO_CLASS == "Project" else "Screen",
             "kvps": kvps,
-            "bff_url": get_bff_url(request, study_bff_url, f"{obj.name}.csv", ext="csv")
+            "bff_url": get_bff_url(request, study_bff_url, f"{obj.name}.parquet", ext="parquet")
         })
 
     img_objects = []
