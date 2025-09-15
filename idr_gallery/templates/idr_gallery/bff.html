@@ -1,0 +1,77 @@
+
+<html>
+    <head>
+        <title>IDR BioFile Finder</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body, html {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                overflow: hidden;
+            }
+            iframe {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                border: none;
+            }
+            p {
+                margin: 20px;
+                color: #555;
+                font-family: Arial, sans-serif;
+                font-size: 18px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Waiting for search with query_id: {{ query_id }}</p>
+        <iframe id="bff-iframe" frameborder="0"></iframe>
+
+        <script>
+            const BASE_URL = "{{ BASE_URL }}";
+            const BFF_URL = "{{ BFF_URL }}";
+            const queryId = "{{ query_id }}";
+            const file_type = "{{ file_type }}";
+            const url_display_name = "{{ url_display_name }}";
+
+            console.log("BASE_URL:", BASE_URL);
+
+            const checkUrl = `${BASE_URL}searchengine/api/v1/resources/check_query_job/?query_id=${queryId}`;
+
+            function checkStatus() {
+                fetch(checkUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "SUCCESS") {
+                        const iframe = document.getElementById('bff-iframe');
+                        const data_url = `${BASE_URL}searchengine/api/v1/resources/return_query_results/?query_id=${queryId}&file_type=${file_type}`;
+                        // Construct the BFF URL with the query ID
+                        // This is the source object for BioFile Finder
+                        let source = {
+                            "uri": data_url,
+                            "type": file_type,
+                            "name": `${url_display_name}.${file_type}`,
+                        }
+                        let s = encodeURIComponent(JSON.stringify(source));
+                        let bffUrl = `${BFF_URL}?source=${s}`;
+                        // Set the iframe's src to the BFF URL
+                        iframe.src = bffUrl;
+                    } else {
+                        console.log("query not complete yet...", data);
+                        setTimeout(checkStatus, 2000); // Check again after 2 seconds
+                    }
+                })
+                .catch(error => {
+                    console.error("Error checking query status:", error);
+                });
+            }
+
+            // Start checking the status
+            checkStatus();
+            
+        </script>
+    </body>
+</html>

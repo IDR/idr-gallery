@@ -529,19 +529,32 @@ def submitquery_as_bff(request, **kwargs):
         "mode": "searchterms"
     }
 
-    # get csv file from search engine...
+    # submit to search engine and get a QUERY ID
     if settings.BASE_URL is not None:
         base_url = settings.BASE_URL
     else:
         base_url = request.build_absolute_uri(reverse('index'))
-    url = f"{base_url}searchengine/api/v1/resources/submitquery/"
-    url += "?return_bff=true"
-    csv_data = requests.post(url, data=json.dumps(payload))
+    url = f"{base_url}searchengine/api/v1/resources/async_submitquery/"
+    rsp = requests.post(url, data=json.dumps(payload))
+    json_data = rsp.json()
+    if rsp.status_code != 200 or "query_id" not in json_data:
+        logger.error("Error from search engine: %s" % rsp.text)
+        return HttpResponse("Error from search engine", status=500)
+    query_id = json_data["query_id"]
 
-    content_type="text/csv"
-    if request.GET.get("debug") == "true":
-        content_type = "text/plain"
-    return HttpResponse(csv_data.text, content_type=content_type)
+    # For BFF to display
+    url_display_name = f"{key}:{value}_({container})" if container else f"{key}:{value}"
+    file_type = request.GET.get("file_type", "csv")
+    if file_type not in ["csv", "parquet"]:
+        file_type = "csv"
+
+    context = {'template': "idr_gallery/bff.html",
+               'query_id': query_id,
+               'file_type': file_type,
+               'url_display_name': url_display_name,
+               'BASE_URL': base_url,
+               'BFF_URL': BFF_URL}
+    return context
 
 
 def get_bff_url(request, data_url, fname, ext="csv"):
