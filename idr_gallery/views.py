@@ -537,10 +537,11 @@ def submitquery_as_bff(request, **kwargs):
     url = f"{base_url}searchengine/api/v1/resources/async_submitquery/"
     rsp = requests.post(url, data=json.dumps(payload))
     json_data = rsp.json()
-    if rsp.status_code != 200 or "query_id" not in json_data:
+    # Handle existing or new query_id...
+    query_id = json_data.get("query_id", json_data.get("existing query id"))
+    if rsp.status_code != 200 or query_id is None:
         logger.error("Error from search engine: %s" % rsp.text)
         return HttpResponse("Error from search engine", status=500)
-    query_id = json_data["query_id"]
 
     # For BFF to display
     url_display_name = f"{key}:{value}_({container})" if container else f"{key}:{value}"
