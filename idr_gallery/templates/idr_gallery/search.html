@@ -229,16 +229,12 @@
   var SUPER_CATEGORY {% if super_category %} = {{ super_category|safe }} {% endif %};
   var STATIC_DIR = "{% static 'gallery/' %}";
   var SEARCH_ENGINE_URL = `${BASE_URL}searchengine/api/v1/`;
-  // BioFile Finder App URL
-  var BFF_BASE = "{{ BFF_BASE }}";
-  // Page that has BFF in iframe and handles submitting query to search engine
-  var SUBMITQUERY_AS_BFF = "{{ submitquery_as_bff }}";
 </script>
 
 <script src="{% static 'idr_gallery/omero_search_form.js' %}?_={{VERSION}}"></script>
 
 <script>
-  const searchForm = new OmeroSearchForm("search_form", SEARCH_ENGINE_URL, "results", BASE_URL, SUBMITQUERY_AS_BFF);
+  const searchForm = new OmeroSearchForm("search_form", SEARCH_ENGINE_URL, "results", BASE_URL);
 
   // custom handling of search results, not handled by OmeroSearchForm
   searchForm.on("results", function(event, data) {

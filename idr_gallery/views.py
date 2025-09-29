@@ -107,7 +107,6 @@ def index(request, super_category=None, conn=None, **kwargs):
     context["TABS"] = TABS
     context["VERSION"] = VERSION
     context["BFF_URL"] = BFF_URL
-    context["submitquery_as_bff"] = request.build_absolute_uri(reverse("idr_gallery_submitquery_as_bff"))
 
     settings_ctx = get_settings_as_context()
     context = {**context, **settings_ctx}
@@ -167,7 +166,6 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
 
     # Choose Study Title first, then Publication Title
     title_values = kvps.get("Study Title", kvps.get("Publication Title"))
-    #bff_url = reverse("idr_gallery_submitquery_as_bff")
     if settings.BASE_URL is not None:
         base_url = settings.BASE_URL
     else:
@@ -484,78 +482,6 @@ def api_thumbnails(request, conn=None, **kwargs):
         except KeyError:
             logger.error("Thumbnail not available. (img id: %d)" % i)
     return rv
-
-
-@render_response()
-def submitquery_as_bff(request, **kwargs):
-    # ?key=Gene+Symbol&value=pax6&operator=equals&container=idr0010-doil-dnadamage/screenA
-    container = request.GET.get("container")
-    key = request.GET.get("key")
-    value = request.GET.get("value")
-    operator = request.GET.get("operator", "equals")
-
-    and_filters = []
-
-    if container is not None:
-        # container is e.g. "idr0010-doil-dnadamage/screenA"
-        and_filters.append({
-            "name": "name",
-            "value": container,
-            "operator": "equals",
-            "resource": "container"
-        })
-
-    if key is not None and value is not None and operator is not None:
-        and_filters.append({
-            "name": key,
-            "value": value,
-            "operator": operator,
-            "resource": "image"
-        })
-
-    if len(and_filters) == 0:
-        return HttpResponseBadRequest(
-            "query by key and/or container, e.g. "
-            "?key=Gene+Symbol&value=pax6&operator=equals&container=idr0010-doil-dnadamage/screenA")
-
-
-    payload = {
-        "resource": "image",
-        "query_details": {
-            "and_filters": and_filters,
-            "or_filters": [],
-            "case_sensitive": False
-        },
-        "mode": "searchterms"
-    }
-
-    # submit to search engine and get a QUERY ID
-    if settings.BASE_URL is not None:
-        base_url = settings.BASE_URL
-    else:
-        base_url = request.build_absolute_uri(reverse('index'))
-    url = f"{base_url}searchengine/api/v1/resources/async_submitquery/"
-    rsp = requests.post(url, data=json.dumps(payload))
-    json_data = rsp.json()
-    # Handle existing or new query_id...
-    query_id = json_data.get("query_id", json_data.get("existing query id"))
-    if rsp.status_code != 200 or query_id is None:
-        logger.error("Error from search engine: %s" % rsp.text)
-        return HttpResponse("Error from search engine", status=500)
-
-    # For BFF to display
-    url_display_name = f"{key}:{value}_({container})" if container else f"{key}:{value}"
-    file_type = request.GET.get("file_type", "csv")
-    if file_type not in ["csv", "parquet"]:
-        file_type = "csv"
-
-    context = {'template': "idr_gallery/bff.html",
-               'query_id': query_id,
-               'file_type': file_type,
-               'url_display_name': url_display_name,
-               'BASE_URL': base_url,
-               'BFF_URL': BFF_URL}
-    return context
 
 
 def get_bff_url(request, data_url, fname, ext="csv"):
