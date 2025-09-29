@@ -885,8 +885,8 @@ class OmeroSearchForm {
             </div>
             <div class="studyImages">
               <div style="margin-left: 20px">
-                Images from study: <a href="${BASE_URL}webclient/?show=${objType}-${objId}" target="_blank" title="Open Study in webclient showing ALL images">
-                  ${studyName}</a>
+                Images from study: <a href="${BASE_URL}study/${tokens[0]}/" title="Open Study landing page">
+                  ${tokens[0]}</a>
                 | Open ${count} images in
                 <a href="${this.getBffUrl(studyName)}" target="_blank" title="Open Study in BioFile-Finder">BioFile-Finder</a>
               </div>
