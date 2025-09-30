@@ -27,6 +27,10 @@ urlpatterns = [
     # we want a regex that matches mapr_key but not favicon
     re_path(r'^mapr/(?P<mapr_key>(?!favicon)[\w]+)/$',
             views.mapr, name='mapr'),
+
+    # e.g. ?key=Gene+Symbol&value=pax6&operator=equals&container=idr0070-kerwin-hdbr/experimentA
+    # BioFile Finder csv file 
+    re_path(r'^bff/$', views.submitquery_as_bff, name='idr_gallery_submitquery_as_bff'),
 ]
 
 for c in SUPER_CATEGORIES:
