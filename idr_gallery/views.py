@@ -186,9 +186,11 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         containers.append({
             "id": obj.id,
             "name": obj.name,
+            "short_name": obj.name.split("/")[-1],
             "description": desc,
             "type": "Project" if obj.OMERO_CLASS == "Project" else "Screen",
             "kvps": kvps,
+            "csv_download": f"{study_bff_url}&file_type=csv",
             "bff_url_csv": get_bff_url(request, study_bff_url, f"{obj.name}.csv", ext="csv"),
             "bff_url_parquet": get_bff_url(request, study_bff_url, f"{obj.name}.parquet", ext="parquet")
         })
@@ -236,6 +238,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
 
     context = {
         "template": "idr_gallery/idr_study.html",
+        "base_url": base_url,
         "globus_origin_id": EMBL_EBI_PUBLIC_GLOBUS_ID,
         "idr_id": idrid,
         "idrid_name": idrid_name,

@@ -888,7 +888,7 @@ class OmeroSearchForm {
                 Images from study: <a href="${BASE_URL}study/${tokens[0]}/" title="Open Study landing page">
                   ${tokens[0]}</a>
                 | Open ${count} images in
-                <a href="${this.getBffUrl(studyName)}" target="_blank" title="Open Study in BioFile-Finder">BioFile-Finder</a>
+                <a href="${this.getBffUrl(studyName)}" target="_blank" title="Open search results from ${studyId} in BioFile Finder">BioFile Finder</a>
               </div>
               <ul></ul>
               <div class="studyImagesSpinner">

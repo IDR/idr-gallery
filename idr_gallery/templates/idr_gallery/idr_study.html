@@ -122,27 +122,33 @@
 
             <p>{{ authors }}</p>
 
-            <h3>Browse Data in IDR</h3>
+            <h3>
+                <img style="width: 36px; height: 36px" src="{% static 'idr_gallery/images/idr-logomark.svg' %}" />
+                Browse Data in IDR
+            </h3>
 
             {% for container in containers %}
                 <p>
                     <a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a>
+                    <span class="image_count" id="image_count_{{ container.name }}"></span>
                 </p>
             {% endfor %}
 
-            <h3>Open in BioFile Finder</h3>
+            <h3>
+                <img style="width: 36px; height: 36px" src="https://bff.allencell.org/7904723aae61604cf0a2.png" />
+                Open in BioFile Finder
+            </h3>
+
+            <p>
+                BioFile Finder is a tool for filtering and grouping tabular data.
+                Selected images can be viewed and opened back in the IDR.
+            </p>
 
             {% for container in containers %}
-                <p>
-                    {{ container.name }}:
-                    <a target="_blank" href="{{ container.bff_url_csv }}">Open CSV</a> |
-                    <a target="_blank" href="{{ container.bff_url_parquet }}">Open Parquet</a>
-                    {% if "experiment" in container.name or "screen" in container.name %}
-                        <!-- just images from that container -->
-                    {% else %}
-                        (all images)
-                    {% endif %}
-                </p>
+            <p>
+                <a target="_blank" href="{{ container.bff_url_parquet }}">{{ container.name }}</a>
+                <span class="image_count" id="bff_row_count_{{ container.name }}"></span>
+            </p>
             {% endfor %}
 
             <!-- Image Path: {{ img_path }} <br>
@@ -163,6 +169,13 @@
                 <a target="_blank" href="{{ download_url }}">browse original data</a>.
             </p>
             {% endif %}
+
+            <p>
+                Download tabular metadata (as shown in BioFile Finder) above:
+                {% for container in containers %}
+                    <a target="_blank" href="{{ container.csv_download }}">{{ container.short_name }}.csv</a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </p>
 
             <!-- If the data is 'mkngff' Zarr data, link to "alpha" BIA pages with Zarr viewers etc -->
             {% if bia_ngff_id %}
@@ -200,4 +213,53 @@
 
 
 </div>
+
+<script>
+    console.log("{{ base_url }}");
+    document.addEventListener("DOMContentLoaded", function() {
+        // load image counts...
+        // https://idr.openmicroscopy.org/searchengine//api/v1/resources/container_images/?data_source=idr
+        const BASE_URL = "{{ base_url }}";
+        let url = BASE_URL + "searchengine/api/v1/resources/container_images/?data_source=idr";
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const containers = data.results.results;
+                let total = 0;
+                let $all_images;
+                containers.forEach(container => {
+                    if (container.name.startsWith("{{ idr_id }}")) {
+                        // In case 'image count' gets renamed to 'image_count' in future...
+                        let imageCount = container["image count"] || container["image_count"] || 0;
+                        total += imageCount;
+                        const $span = document.getElementById(`image_count_${container.name}`);
+                        const $bff_span = document.getElementById(`bff_row_count_${container.name}`);
+                        if ($span) {
+                            if (imageCount === 1) {
+                                $span.textContent = ` (1 image)`;
+                                $bff_span.textContent = ` (1 row)`;
+                            } else if (imageCount == 0) {
+                                $span.textContent = ` (study info)`;
+                                $all_images = $bff_span;
+                            } else {
+                                $span.textContent = ` (${imageCount} images)`;
+                                $bff_span.textContent = ` (${imageCount} rows)`;
+                            }
+                        }
+                    }
+                });
+                if ($all_images) {
+                    if (total === 1) {
+                        $all_images.textContent = ` (1 row)`;
+                    } else {
+                        $all_images.textContent = ` (all ${total} rows)`;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching image counts:', error);
+            });
+        });
+</script>
 {% endblock %}
