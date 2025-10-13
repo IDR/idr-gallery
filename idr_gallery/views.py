@@ -33,7 +33,8 @@ MAX_LIMIT = max(1, API_MAX_LIMIT)
 
 EMBL_EBI_PUBLIC_GLOBUS_ID = "47772002-3e5b-4fd3-b97c-18cee38d6df2"
 TABLE_NAMESPACE = "openmicroscopy.org/omero/bulk_annotations"
-BFF_URL = "https://bff.allencell.org/app"
+# BFF_URL = "https://bff.allencell.org/app"
+BFF_URL = "https://will-moore.github.io/biofile-finder/app"
 
 
 def redirect_with_params(viewname, **kwargs):
