@@ -136,17 +136,19 @@
 
             <h3>
                 <img style="width: 36px; height: 36px" src="https://bff.allencell.org/7904723aae61604cf0a2.png" />
-                Open in BioFile Finder
+                BioFile Finder
             </h3>
 
             <p>
-                BioFile Finder is a tool for filtering and grouping tabular data.
-                Selected images can be viewed and opened back in the IDR.
+                BioFile Finder is a tool for filtering, sorting and grouping tabular data.
+                Images can be selected images can be viewed and opened via a link back to the IDR.
             </p>
 
             {% for container in containers %}
             <p>
-                <a target="_blank" href="{{ container.bff_url_parquet }}">{{ container.name }}</a>
+                <a target="_blank" title="Open BioFile Finder in a new Tab" href="{{ container.bff_url_parquet }}">
+                    {{ container.name }}
+                </a>
                 <span class="image_count" id="bff_row_count_{{ container.name }}"></span>
             </p>
             {% endfor %}
