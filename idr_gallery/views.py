@@ -149,7 +149,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         raise Http404("No Project or Screen found for %s" % idrid)
     
     # E.g."idr0098-huang-octmos", "idr0098-huang-octmos/experimentA", then "B"
-    objs.sort(key=lambda x: (len(x.name), x.id))
+    objs.sort(key=lambda x: (len(x.name), x.name))
 
     # Use first object for KVPs
     pids = None
