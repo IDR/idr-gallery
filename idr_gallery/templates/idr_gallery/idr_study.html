@@ -145,11 +145,22 @@
             </p>
 
             {% for container in containers %}
-            <p>
+            <p {% if container.empty_study_container %}
+                id="bff_study_container"
+              {% else %}
+                id="bff_p_{{ container.name }}"
+              {% endif %}>
                 <a target="_blank" title="Open BioFile Finder in a new Tab" href="{{ container.bff_url_parquet }}">
                     {{ container.name }}
                 </a>
-                <span class="image_count" id="bff_row_count_{{ container.name }}"></span>
+                <span class="image_count"
+                  {% if container.empty_study_container %}
+                    id="bff_total_row_count"
+                  {% else %}
+                    id="bff_row_count_{{ container.name }}"
+                  {% endif %}>
+                   <!-- image counts loaded by JS -->
+                </span>
             </p>
             {% endfor %}
 
@@ -217,19 +228,19 @@
 </div>
 
 <script>
-    console.log("{{ base_url }}");
     document.addEventListener("DOMContentLoaded", function() {
         // load image counts...
         // https://idr.openmicroscopy.org/searchengine//api/v1/resources/container_images/?data_source=idr
         const BASE_URL = "{{ base_url }}";
+        const MAX_IMAGES = 1000000;
         let url = BASE_URL + "searchengine/api/v1/resources/container_images/?data_source=idr";
+        let fmt = new Intl.NumberFormat();
 
         fetch(url)
             .then(response => response.json())
             .then(data => {
                 const containers = data.results.results;
                 let total = 0;
-                let $all_images;
                 containers.forEach(container => {
                     if (container.name.startsWith("{{ idr_id }}")) {
                         // In case 'image count' gets renamed to 'image_count' in future...
@@ -243,19 +254,32 @@
                                 $bff_span.textContent = ` (1 row)`;
                             } else if (imageCount == 0) {
                                 $span.textContent = ` (study info)`;
-                                $all_images = $bff_span;
+                                // $all_images = $bff_span;
                             } else {
-                                $span.textContent = ` (${imageCount} images)`;
-                                $bff_span.textContent = ` (${imageCount} rows)`;
+                                $span.textContent = ` (${fmt.format(imageCount)} images)`;
+                                $bff_span.textContent = ` (${fmt.format(imageCount)} rows)`;
                             }
+                        }
+                        // replace the BFF link text if too many images
+                        if (imageCount > MAX_IMAGES) {
+                            const $bff_para = document.getElementById(`bff_p_${container.name}`);
+                            $bff_para.innerHTML = `<b>${container.name}</b> has ${fmt.format(imageCount)} rows. Too large to load in BioFile Finder.`;
                         }
                     }
                 });
-                if ($all_images) {
+                // Handle "All containers" total
+                let $total_count = document.getElementById("bff_total_row_count");
+                if ($total_count) {
                     if (total === 1) {
-                        $all_images.textContent = ` (1 row)`;
+                        $total_count.textContent = ` (1 row)`;
                     } else {
-                        $all_images.textContent = ` (all ${total} rows)`;
+                        $total_count.textContent = ` (all ${total} rows)`;
+                    }
+                }
+                if (total > MAX_IMAGES) {
+                    const $bff_study_para = document.getElementById("bff_study_container");
+                    if ( $bff_study_para ) {
+                        $bff_study_para.innerHTML = `<b>{{ idr_id }}</b> has ${fmt.format(total)} rows. Too large to load in BioFile Finder.`;
                     }
                 }
             })
