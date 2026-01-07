@@ -495,12 +495,13 @@ def image_viewer(request, iid, conn=None, **kwargs):
     # data_location is "IDR" or "Github" or "BIA" or "Embassy_S3"
     img_path, data_location, is_zarr = img_info
 
-    print("img_path, data_location, is_zarr:", img_path, data_location, is_zarr)
+    # get parent Project or Screen to get IDRID name
+    parents = image.getAncestry()
+    idrid_name = parents[-1].name  # e.g. idr0002-heriche-condensation/experimentA
+    idrid_name = idrid_name.split("/")[0]  # e.g. idr0002-heriche-condensation
 
     download_url = None
     bia_ngff_id = None
-    # FIXME: get correct idrid_name from image/project/screen
-    idrid_name = "idr0000-unknown"
     if data_location == "IDR" or data_location == "Github":
         # then link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
         # e.g. idr0002-heriche-condensation
