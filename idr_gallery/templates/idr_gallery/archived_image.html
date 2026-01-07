@@ -1,0 +1,20 @@
+
+<html>
+    <head>
+        <title>Archived Image</title>
+    </head>
+    <body>
+        <h1>Image Archived</h1>
+        <h2>Name: {{ image.name }}</h2>
+        <h3>ID: {{ image.id }}</h3>
+        <p>This image is archived and cannot be viewed.</p>
+
+        <ul>
+            <li>Image Path: {{ img_path }}</li>
+            <li>Data Location: {{ data_location }}</li>
+            <li>Is Zarr?: {{ is_zarr }}</li>
+            <li>Download URL: <a href="{{ download_url }}">{{ download_url }}</a></li>
+            <li>BIA NGFF ID: {{ bia_ngff_id }}</li>
+        </ul>
+    </body>
+</html>
