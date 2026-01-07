@@ -172,4 +172,4 @@ License
 Copyright
 ---------
 
-2016-2025, The Open Microscopy Environment
+2016-2026, The Open Microscopy Environment
