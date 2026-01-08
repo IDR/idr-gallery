@@ -189,6 +189,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
             "type": "Project" if obj.OMERO_CLASS == "Project" else "Screen",
             "kvps": kvps,
             "csv_download": f"{study_bff_url}&file_type=csv",
+            "parquet_download": f"{study_bff_url}&file_type=parquet",
             "bff_url_csv": get_bff_url(request, study_bff_url, f"{obj.name}.csv", ext="csv"),
             "bff_url_parquet": get_bff_url(request, study_bff_url, f"{obj.name}.parquet", ext="parquet"),
             "empty_study_container": "experiment" not in obj.name and "screen" not in obj.name,
