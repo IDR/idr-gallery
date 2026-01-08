@@ -143,6 +143,10 @@
                 BioFile Finder is a tool for filtering, sorting and grouping tabular data.
                 Images can be selected and the "Download" link will open them in the IDR viewer.
             </p>
+            <!-- Shown by JS if any tables are above threshold size -->
+            <p id="slow_load_warning" style="display: none">
+                NB: large tables may take some time to load in BioFile Finder.
+            </p>
 
             {% for container in containers %}
             <p {% if container.empty_study_container %}
@@ -233,6 +237,7 @@
         // https://idr.openmicroscopy.org/searchengine//api/v1/resources/container_images/?data_source=idr
         const BASE_URL = "{{ base_url }}";
         const MAX_IMAGES = 1000000;
+        const SLOW_WARNING_THRESHOLD = 100000;
         let url = BASE_URL + "searchengine/api/v1/resources/container_images/?data_source=idr";
         let fmt = new Intl.NumberFormat();
 
@@ -245,6 +250,10 @@
                     if (container.name.startsWith("{{ idr_id }}")) {
                         // In case 'image count' gets renamed to 'image_count' in future...
                         let imageCount = container["image count"] || container["image_count"] || 0;
+                        if (imageCount > SLOW_WARNING_THRESHOLD) {
+                            // Show "may be slow to load" warning - also below for total
+                            document.getElementById("slow_load_warning").style.display = "block";
+                        }
                         total += imageCount;
                         const $span = document.getElementById(`image_count_${container.name}`);
                         const $bff_span = document.getElementById(`bff_row_count_${container.name}`);
@@ -274,6 +283,9 @@
                         $total_count.textContent = ` (1 row)`;
                     } else {
                         $total_count.textContent = ` (all ${total} rows)`;
+                        if (total > SLOW_WARNING_THRESHOLD) {
+                            document.getElementById("slow_load_warning").style.display = "block";
+                        }
                     }
                 }
                 if (total > MAX_IMAGES) {
