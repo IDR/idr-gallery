@@ -130,7 +130,7 @@
             {% for container in containers %}
                 <p>
                     <a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a>
-                    <span class="image_count" id="image_count_{{ container.name }}"></span>
+                    (<span class="image_count" id="image_count_{{ container.name }}"></span>)
                 </p>
             {% endfor %}
 
@@ -141,7 +141,8 @@
 
             <p>
                 BioFile Finder is a tool for filtering, sorting and grouping tabular data.
-                Images can be selected and the "Download" link will open them in the IDR viewer.
+                Each table below is loaded from IDR as a Parquet file, with each row representing an image.
+                Images can be selected in BioFile Finder and the "Download" link will open them in the IDR viewer.
             </p>
             <!-- Shown by JS if any tables are above threshold size -->
             <p id="slow_load_warning" style="display: none">
@@ -155,18 +156,19 @@
                 id="bff_p_{{ container.name }}"
               {% endif %}>
                 <a target="_blank" title="Open BioFile Finder in a new Tab" href="{{ container.bff_url_parquet }}">
-                    {{ container.name }}
+                    {{ container.short_name }}
                 </a>
-                <span class="image_count"
-                  {% if container.empty_study_container %}
-                    id="bff_total_row_count"
-                  {% else %}
-                    id="bff_row_count_{{ container.name }}"
-                  {% endif %}>
-                   <!-- image counts loaded by JS -->
-                </span>
-                <!-- Hidden link, just used for HEAD request to get size (shown instead) -->
-                <a class="table-download-link" style="display: none;" href="{{ container.parquet_download }}">[Parquet]</a>
+                    <span>(</span><span class="image_count"
+                    {% if container.empty_study_container %}
+                        id="bff_total_row_count"
+                    {% else %}
+                        id="bff_row_count_{{ container.name }}"
+                    {% endif %}>
+                    <!-- image counts loaded by JS -->
+                    </span>,
+                    <!-- Hidden link, just used for HEAD request to get size (shown instead) -->
+                    parquet:
+                    <a class="table-download-link parquet" style="display: none;" href="{{ container.parquet_download }}">-</a><span>)</span>
             </p>
             {% endfor %}
 
@@ -190,7 +192,7 @@
             {% endif %}
 
             <p>
-                Download tabular metadata (as shown in BioFile Finder) above:
+                Download tabular metadata (as shown in BioFile Finder above):
                 {% for container in containers %}
                     <a class="table-download-link" target="_blank" href="{{ container.csv_download }}">{{ container.short_name }}.csv</a>{% if not forloop.last %}, {% endif %}
                 {% endfor %}
@@ -251,7 +253,7 @@
                 .then(response => {
                     const contentLength = response.headers.get('Content-Length');
                     if (contentLength) {
-                        const sizeInMB = (contentLength / (1024 * 1024)).toFixed(2);
+                        const sizeInMB = (contentLength / (1024 * 1024)).toPrecision(2);
                         // add size after link
                         const sizeSpan = document.createElement('span');
                         sizeSpan.textContent = ` ${sizeInMB} MB`;
@@ -277,18 +279,18 @@
                             document.getElementById("slow_load_warning").style.display = "block";
                         }
                         total += imageCount;
-                        const $span = document.getElementById(`image_count_${container.name}`);
+                        const $idr_span = document.getElementById(`image_count_${container.name}`);
                         const $bff_span = document.getElementById(`bff_row_count_${container.name}`);
-                        if ($span) {
+                        if ($idr_span) {
                             if (imageCount === 1) {
-                                $span.textContent = ` (1 image)`;
-                                $bff_span.textContent = ` (1 row)`;
+                                $idr_span.textContent = `1 image`;
+                                $bff_span.textContent = `1 row`;
                             } else if (imageCount == 0) {
-                                $span.textContent = ` (study info)`;
+                                $idr_span.textContent = `study info`;
                                 // $all_images = $bff_span;
                             } else {
-                                $span.textContent = ` (${fmt.format(imageCount)} images)`;
-                                $bff_span.textContent = ` (${fmt.format(imageCount)} rows)`;
+                                $idr_span.textContent = `${fmt.format(imageCount)} images`;
+                                $bff_span.textContent = `${fmt.format(imageCount)} rows`;
                             }
                         }
                         // replace the BFF link text if too many images
@@ -302,9 +304,9 @@
                 let $total_count = document.getElementById("bff_total_row_count");
                 if ($total_count) {
                     if (total === 1) {
-                        $total_count.textContent = ` (1 row)`;
+                        $total_count.textContent = `1 row`;
                     } else {
-                        $total_count.textContent = ` (all ${total} rows)`;
+                        $total_count.textContent = `all ${total} rows`;
                         if (total > SLOW_WARNING_THRESHOLD) {
                             document.getElementById("slow_load_warning").style.display = "block";
                         }
