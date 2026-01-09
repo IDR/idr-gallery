@@ -253,7 +253,9 @@
                 .then(response => {
                     const contentLength = response.headers.get('Content-Length');
                     if (contentLength) {
-                        const sizeInMB = (contentLength / (1024 * 1024)).toPrecision(2);
+                        let sizeInMB = (contentLength / (1024 * 1024));
+                        // E.g. 162 MB (not 1.6e+2 MB) or 2.5 MB
+                        sizeInMB = sizeInMB > 99 ? sizeInMB.toFixed(0) : sizeInMB.toPrecision(2);
                         // add size after link
                         const sizeSpan = document.createElement('span');
                         sizeSpan.textContent = ` ${sizeInMB} MB`;
