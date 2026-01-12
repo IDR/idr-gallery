@@ -276,7 +276,7 @@
                     if (container.name.startsWith("{{ idr_id }}")) {
                         // In case 'image count' gets renamed to 'image_count' in future...
                         let imageCount = container["image count"] || container["image_count"] || 0;
-                        if (imageCount > SLOW_WARNING_THRESHOLD) {
+                        if (imageCount > SLOW_WARNING_THRESHOLD && imageCount < MAX_IMAGES) {
                             // Show "may be slow to load" warning - also below for total
                             document.getElementById("slow_load_warning").style.display = "block";
                         }
@@ -309,7 +309,7 @@
                         $total_count.textContent = `1 row`;
                     } else {
                         $total_count.textContent = `all ${total} rows`;
-                        if (total > SLOW_WARNING_THRESHOLD) {
+                        if (total > SLOW_WARNING_THRESHOLD && total < MAX_IMAGES) {
                             document.getElementById("slow_load_warning").style.display = "block";
                         }
                     }
