@@ -180,13 +180,7 @@
 
             {% if download_url %}
             <p>
-                Data is available for download via 
-                <a target="_blank" href="https://app.globus.org/file-manager?origin_id={{ globus_origin_id }}&origin_path=/pub/databases/IDR/{{ idrid_name }}">
-                    Globus: {{idrid_name}}.
-                </a>
-            </p>
-            <p>
-                To download individual files in your browser, you can
+                To download original image files in your browser, you can
                 <a target="_blank" href="{{ download_url }}">browse original data</a>.
             </p>
             {% endif %}
@@ -199,11 +193,12 @@
                 <p>Data for this study is available at the <a target="_blank" href="{{ bia_accession.link }}">BioImage Archive: {{ bia_accession.name }}</a>.</p>
             {% endif %}
 
+            <!-- hidden link for robots etc -->
             <p class="debug">Download as <a href="{% url 'idr_gallery_study_jsonld' idr_id %}" target="_blank">JSON</a>.</p>
 
             {% if download_url %}
             <p>
-                For more download options, including FTP, see the IDR
+                For more download options, including bulk download using Globus or FTP clients, see the IDR
                 <a target="_blank" href="https://idr.openmicroscopy.org/about/download.html">Data download</a> page.
             </p>
             {% endif %}
