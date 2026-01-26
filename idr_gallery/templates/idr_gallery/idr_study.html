@@ -191,13 +191,6 @@
             </p>
             {% endif %}
 
-            <p>
-                Download tabular metadata (as shown in BioFile Finder above):
-                {% for container in containers %}
-                    <a class="table-download-link" target="_blank" href="{{ container.csv_download }}">{{ container.short_name }}.csv</a>{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            </p>
-
             <!-- If the data is 'mkngff' Zarr data, link to "alpha" BIA pages with Zarr viewers etc -->
             {% if bia_ngff_id %}
                 <p>View OME-Zarr data and download at <a target="_blank" href="https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{{ bia_ngff_id }}.html">BioImage Archive: {{ bia_ngff_id }}</a>.</p>
