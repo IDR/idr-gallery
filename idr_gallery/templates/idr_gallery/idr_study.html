@@ -181,15 +181,15 @@
             {% if download_url %}
             <p>
                 To download original image files in your browser, you can
-                <a target="_blank" href="{{ download_url }}">browse original data</a>.
+                <a class="downld-link" target="_blank" href="{{ download_url }}">access original data</a>.
             </p>
             {% endif %}
 
-            <!-- If the data is 'mkngff' Zarr data, link to "alpha" BIA pages with Zarr viewers etc -->
+            <!-- If the data is 'mkngff' Zarr data, link to "alpha" BIA pages with Zarr viewers etc e.g. idr0010-->
             {% if bia_ngff_id %}
                 <p>View OME-Zarr data and download at <a target="_blank" href="https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{{ bia_ngff_id }}.html">BioImage Archive: {{ bia_ngff_id }}</a>.</p>
             {% elif bia_accession %}
-                <!-- Otherwise if BIA link in in KVPs, you can simply download from that page -->
+                <!-- Otherwise if BIA link is in KVPs, you can simply download from that page: e.g. idr0017 -->
                 <p>Data for this study is available at the <a target="_blank" href="{{ bia_accession.link }}">BioImage Archive: {{ bia_accession.name }}</a>.</p>
             {% endif %}
 
