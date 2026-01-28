@@ -468,3 +468,59 @@ def api_thumbnails(request, conn=None, **kwargs):
         except KeyError:
             logger.error("Thumbnail not available. (img id: %d)" % i)
     return rv
+
+@login_required()
+@render_response()
+def image_viewer(request, iid, conn=None, **kwargs):
+    """
+    Check if image is archived before returning iviewer response
+    """
+    image = conn.getObject("Image", iid)
+
+    from omero_iviewer.views import index as iviewer_index
+
+    if image is None:
+        raise Http404("Image with ID %s not found" % iid)
+    
+    if not image.archived:
+        return iviewer_index(request, iid, conn=conn, **kwargs)
+    
+    ext_info = image.getDetails().externalInfo
+    if ext_info is not None:
+        # TODO check for lsid etc
+        return iviewer_index(request, iid, conn=conn, **kwargs)
+
+    # Image is archived and has no ExternalInfo - show other options...
+    img_info = get_image_info(conn, image.id)
+    # data_location is "IDR" or "Github" or "BIA" or "Embassy_S3"
+    img_path, data_location, is_zarr = img_info
+
+    # get parent Project or Screen to get IDRID name
+    parents = image.getAncestry()
+    idrid_name = parents[-1].name  # e.g. idr0002-heriche-condensation/experimentA
+    idrid_name = idrid_name.split("/")[0]  # e.g. idr0002-heriche-condensation
+
+    download_url = None
+    bia_ngff_id = None
+    if data_location == "IDR" or data_location == "Github":
+        # then link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
+        # e.g. idr0002-heriche-condensation
+        download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
+
+    if data_location == "Embassy_S3":
+        # "mkngff" data is at https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/idr_ngff_data.html
+        bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
+
+
+    return {
+        "template": "idr_gallery/archived_image.html",
+        "image": {
+            "id": image.id,
+            "name": image.name,
+        },
+        "img_path": img_path,
+        "data_location": data_location,
+        "is_zarr": is_zarr,
+        "download_url": download_url,
+        "bia_ngff_id": bia_ngff_id,
+    }
