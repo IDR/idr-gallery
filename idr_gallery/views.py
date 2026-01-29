@@ -173,7 +173,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
     bff_url = f"{base_url}searchengine/api/v1/resources/container_bff_data/"
     containers = []
     for obj in objs:
-        desc = obj.description
+        desc = obj.description if obj.description is not None else ""
         for token in ["Screen", "Project", "Experiment", "Study"]:
             if f"{token} Description" in desc:
                 desc = desc.split(f"{token} Description", 1)[1].strip()
