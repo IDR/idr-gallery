@@ -200,8 +200,9 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         img_objects.extend(_get_study_images(conn, obj["type"], obj["id"], tag_text="Study Example Image"))
 
     if len(img_objects) == 0:
-        # None found with Tag - just load untagged image
-        img_objects = _get_study_images(conn, obj["type"], obj["id"])
+        for obj in containers:
+            # None found with Tag - just load untagged image
+            img_objects.extend(_get_study_images(conn, obj["type"], obj["id"]))
     images = [{"id": o.id.val, "name": o.name.val} for o in img_objects]
 
     # Use first image to get download & path info...
@@ -415,10 +416,13 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
     params.theFilter = omero.sys.Filter()
     params.theFilter.limit = wrap(limit)
     params.theFilter.offset = wrap(offset)
+    fetch_anns = ""
     and_text_value = ""
     if tag_text is not None:
         params.addString("tag_text", tag_text)
         and_text_value = " and annotation.textValue = :tag_text"
+        fetch_anns = " left outer join i.annotationLinks as al"\
+                     " join al.child as annotation"
 
     if obj_type.lower() == "project":
         query = "select i from Image as i"\
@@ -426,8 +430,7 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
                 " join dl.parent as dataset"\
                 " left outer join dataset.projectLinks"\
                 " as pl join pl.parent as project"\
-                " left outer join i.annotationLinks as al"\
-                " join al.child as annotation"\
+                + fetch_anns + \
                 " where project.id = :id%s" % and_text_value
 
     elif obj_type.lower() == "screen":
@@ -437,8 +440,7 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
                  " join well.plate as pt"
                  " left outer join pt.screenLinks as sl"
                  " join sl.parent as screen"
-                 " left outer join i.annotationLinks as al"
-                 " join al.child as annotation"
+                 + fetch_anns + \
                  " where screen.id = :id%s"
                  " order by well.column, well.row" % and_text_value)
 
