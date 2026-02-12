@@ -82,15 +82,18 @@ def index(request, super_category=None, conn=None, **kwargs):
             # ?key=Publication+Authors&value=Smith&operator=contains&resource=container
             keyval = query.split(":", 1)
             if len(keyval) > 1 and len(keyval[1]) > 0:
-                # search for studies ("containers") and use "contains"
+                # search for studies ("containers") and use "contains" for "authors"
+                # but otherwise use "equals"
                 # to match previous behaviour
                 # NB: 'Name' needs to be 'name' for search-engine
                 key = "name" if keyval[0] == "Name" else keyval[0]
+                operator = "contains" if "author" in key.lower() else "equals"
+                print("key", key, "author" in key.lower(), operator)
                 return redirect_with_params('idr_gallery_search',
                                             key=key,
                                             value=keyval[1],
                                             resource="container",
-                                            operator="contains")
+                                            operator=operator)
             return HttpResponseBadRequest(
                 "Query should be ?query=key:value format")
     context = {'template': template}
