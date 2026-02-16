@@ -88,7 +88,6 @@ def index(request, super_category=None, conn=None, **kwargs):
                 # NB: 'Name' needs to be 'name' for search-engine
                 key = "name" if keyval[0] == "Name" else keyval[0]
                 operator = "contains" if "author" in key.lower() else "equals"
-                print("key", key, "author" in key.lower(), operator)
                 return redirect_with_params('idr_gallery_search',
                                             key=key,
                                             value=keyval[1],
