@@ -122,10 +122,54 @@
 
             <p>{{ authors }}</p>
 
-            <h3>Browse Data in IDR</h3>
+            <h3>
+                <img style="width: 36px; height: 36px" src="{% static 'idr_gallery/images/idr-logomark.svg' %}" />
+                Browse Data in IDR
+            </h3>
 
             {% for container in containers %}
-                <p><a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a></p>
+                <p>
+                    <a href="{% url 'webindex' %}?show={{ container.type | lower }}-{{ container.id }}">{{ container.name }}</a>
+                    (<span class="image_count" id="image_count_{{ container.name }}"></span>)
+                </p>
+            {% endfor %}
+
+            <h3>
+                <img style="width: 36px; height: 36px" src="{% static 'idr_gallery/images/bff_logo.png' %}" />
+                BioFile Finder
+            </h3>
+
+            <p>
+                <a href="https://bff.allencell.org/" target="_blank">BioFile Finder</a> is a tool for filtering, sorting and grouping tabular data.
+                Each table below is loaded from IDR as a Parquet file, with each row representing an image.
+                Images can be selected in BioFile Finder and the "Download" link will open them in the IDR viewer.
+            </p>
+            <!-- Shown by JS if any tables are above threshold size -->
+            <p id="slow_load_warning" style="display: none">
+                NB: large tables may take some time to load in BioFile Finder.
+            </p>
+
+            {% for container in containers %}
+            <p {% if container.empty_study_container %}
+                id="bff_study_container"
+              {% else %}
+                id="bff_p_{{ container.name }}"
+              {% endif %}>
+                <a target="_blank" title="Open BioFile Finder in a new Tab" href="{{ container.bff_url_parquet }}">
+                    {{ container.short_name }}
+                </a>
+                    <span>(</span><span class="image_count"
+                    {% if container.empty_study_container %}
+                        id="bff_total_row_count"
+                    {% else %}
+                        id="bff_row_count_{{ container.name }}"
+                    {% endif %}>
+                    <!-- image counts loaded by JS -->
+                    </span>,
+                    <!-- Hidden link, just used for HEAD request to get size (shown instead) -->
+                    parquet:
+                    <a class="table-download-link parquet" style="display: none;" href="{{ container.parquet_download }}">-</a><span>)</span>
+            </p>
             {% endfor %}
 
             <!-- Image Path: {{ img_path }} <br>
@@ -136,30 +180,25 @@
 
             {% if download_url %}
             <p>
-                Data is available for download via 
-                <a target="_blank" href="https://app.globus.org/file-manager?origin_id={{ globus_origin_id }}&origin_path=/pub/databases/IDR/{{ idrid_name }}">
-                    Globus: {{idrid_name}}.
-                </a>
-            </p>
-            <p>
-                To download individual files in your browser, you can
-                <a target="_blank" href="{{ download_url }}">browse original data</a>.
+                To download original image files in your browser, you can
+                <a class="downld-link" target="_blank" href="{{ download_url }}">access original data</a>.
             </p>
             {% endif %}
 
-            <!-- If the data is 'mkngff' Zarr data, link to "alpha" BIA pages with Zarr viewers etc -->
+            <!-- If the data is 'mkngff' Zarr data, link to "alpha" BIA pages with Zarr viewers etc e.g. idr0010-->
             {% if bia_ngff_id %}
                 <p>View OME-Zarr data and download at <a target="_blank" href="https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/{{ bia_ngff_id }}.html">BioImage Archive: {{ bia_ngff_id }}</a>.</p>
             {% elif bia_accession %}
-                <!-- Otherwise if BIA link in in KVPs, you can simply download from that page -->
+                <!-- Otherwise if BIA link is in KVPs, you can simply download from that page: e.g. idr0017 -->
                 <p>Data for this study is available at the <a target="_blank" href="{{ bia_accession.link }}">BioImage Archive: {{ bia_accession.name }}</a>.</p>
             {% endif %}
 
+            <!-- hidden link for robots etc -->
             <p class="debug">Download as <a href="{% url 'idr_gallery_study_jsonld' idr_id %}" target="_blank">JSON</a>.</p>
 
             {% if download_url %}
             <p>
-                For more download options, including FTP, see the IDR
+                For more download options, including bulk download using Globus or FTP clients, see the IDR
                 <a target="_blank" href="https://idr.openmicroscopy.org/about/download.html">Data download</a> page.
             </p>
             {% endif %}
@@ -183,4 +222,96 @@
 
 
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // load image counts...
+        // https://idr.openmicroscopy.org/searchengine//api/v1/resources/container_images/?data_source=idr
+        const BASE_URL = "{{ base_url }}";
+        const MAX_IMAGES = 1000000;
+        const SLOW_WARNING_THRESHOLD = 100000;
+        let url = BASE_URL + "searchengine/api/v1/resources/container_images/?data_source=idr";
+        let fmt = new Intl.NumberFormat();
+
+        // for each table-download-link (csv download link OR hidden parquet link), HEAD request to get content-length...
+        // Then add size in MB after link
+        const csvLinks = document.querySelectorAll('.table-download-link');
+        csvLinks.forEach(link => {
+            fetch(link.href, { method: 'HEAD' })
+                .then(response => {
+                    const contentLength = response.headers.get('Content-Length');
+                    if (contentLength) {
+                        let sizeInMB = (contentLength / (1024 * 1024));
+                        // E.g. 162 MB (not 1.6e+2 MB) or 2.5 MB
+                        sizeInMB = sizeInMB > 99 ? sizeInMB.toFixed(0) : sizeInMB.toPrecision(2);
+                        // add size after link
+                        const sizeSpan = document.createElement('span');
+                        sizeSpan.textContent = ` ${sizeInMB} MB`;
+                        link.parentNode.insertBefore(sizeSpan, link.nextSibling);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching CSV file size:', error);
+                });
+        });
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const containers = data.results.results;
+                let total = 0;
+                containers.forEach(container => {
+                    if (container.name.startsWith("{{ idr_id }}")) {
+                        // In case 'image count' gets renamed to 'image_count' in future...
+                        let imageCount = container["image count"] || container["image_count"] || 0;
+                        if (imageCount > SLOW_WARNING_THRESHOLD && imageCount < MAX_IMAGES) {
+                            // Show "may be slow to load" warning - also below for total
+                            document.getElementById("slow_load_warning").style.display = "block";
+                        }
+                        total += imageCount;
+                        const $idr_span = document.getElementById(`image_count_${container.name}`);
+                        const $bff_span = document.getElementById(`bff_row_count_${container.name}`);
+                        if ($idr_span) {
+                            if (imageCount === 1) {
+                                $idr_span.textContent = `1 image`;
+                                $bff_span.textContent = `1 row`;
+                            } else if (imageCount == 0) {
+                                $idr_span.textContent = `study info`;
+                                // $all_images = $bff_span;
+                            } else {
+                                $idr_span.textContent = `${fmt.format(imageCount)} images`;
+                                $bff_span.textContent = `${fmt.format(imageCount)} rows`;
+                            }
+                        }
+                        // replace the BFF link text if too many images
+                        if (imageCount > MAX_IMAGES) {
+                            const $bff_para = document.getElementById(`bff_p_${container.name}`);
+                            $bff_para.innerHTML = `<b>${container.name}</b> has ${fmt.format(imageCount)} rows. Too large to load in BioFile Finder.`;
+                        }
+                    }
+                });
+                // Handle "All containers" total
+                let $total_count = document.getElementById("bff_total_row_count");
+                if ($total_count) {
+                    if (total === 1) {
+                        $total_count.textContent = `1 row`;
+                    } else {
+                        $total_count.textContent = `all ${total} rows`;
+                        if (total > SLOW_WARNING_THRESHOLD && total < MAX_IMAGES) {
+                            document.getElementById("slow_load_warning").style.display = "block";
+                        }
+                    }
+                }
+                if (total > MAX_IMAGES) {
+                    const $bff_study_para = document.getElementById("bff_study_container");
+                    if ( $bff_study_para ) {
+                        $bff_study_para.innerHTML = `<b>{{ idr_id }}</b> has ${fmt.format(total)} rows. Too large to load in BioFile Finder.`;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching image counts:', error);
+            });
+        });
+</script>
 {% endblock %}

@@ -234,7 +234,7 @@
 <script src="{% static 'idr_gallery/omero_search_form.js' %}?_={{VERSION}}"></script>
 
 <script>
-  const searchForm = new OmeroSearchForm("search_form", SEARCH_ENGINE_URL, "results");
+  const searchForm = new OmeroSearchForm("search_form", SEARCH_ENGINE_URL, "results", BASE_URL);
 
   // custom handling of search results, not handled by OmeroSearchForm
   searchForm.on("results", function(event, data) {

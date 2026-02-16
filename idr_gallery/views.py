@@ -1,5 +1,6 @@
 
-from django.http import HttpResponseRedirect, HttpResponseBadRequest, Http404, JsonResponse
+
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, Http404, JsonResponse
 from django.urls import reverse, NoReverseMatch
 import json
 import logging
@@ -32,6 +33,7 @@ MAX_LIMIT = max(1, API_MAX_LIMIT)
 
 EMBL_EBI_PUBLIC_GLOBUS_ID = "47772002-3e5b-4fd3-b97c-18cee38d6df2"
 TABLE_NAMESPACE = "openmicroscopy.org/omero/bulk_annotations"
+BFF_URL = "https://bff.allencell.org/app"
 
 
 def redirect_with_params(viewname, **kwargs):
@@ -104,6 +106,7 @@ def index(request, super_category=None, conn=None, **kwargs):
         context['category'] = super_category
     context["TABS"] = TABS
     context["VERSION"] = VERSION
+    context["BFF_URL"] = BFF_URL
 
     settings_ctx = get_settings_as_context()
     context = {**context, **settings_ctx}
@@ -145,7 +148,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         raise Http404("No Project or Screen found for %s" % idrid)
     
     # E.g."idr0098-huang-octmos", "idr0098-huang-octmos/experimentA", then "B"
-    objs.sort(key=lambda x: (len(x.name), x.id))
+    objs.sort(key=lambda x: (len(x.name), x.name))
 
     # Use first object for KVPs
     pids = None
@@ -163,18 +166,33 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
 
     # Choose Study Title first, then Publication Title
     title_values = kvps.get("Study Title", kvps.get("Publication Title"))
+    if settings.BASE_URL is not None:
+        base_url = settings.BASE_URL
+    else:
+        base_url = request.build_absolute_uri(reverse('index'))
+    bff_url = f"{base_url}searchengine/api/v1/resources/container_bff_data/"
     containers = []
     for obj in objs:
-        desc = obj.description
+        desc = obj.description if obj.description is not None else ""
         for token in ["Screen", "Project", "Experiment", "Study"]:
             if f"{token} Description" in desc:
                 desc = desc.split(f"{token} Description", 1)[1].strip()
+        otype = "project" if obj.OMERO_CLASS == "Project" else "screen"
+        study_bff_url = f"{bff_url}?container_name={obj.name}&container_type={otype}"
+        # https://idr-testing.openmicroscopy.org/searchengine//api/v1/resources/container_bff_data/?container_name=idr0164-alzubi-hdbr%2FexperimentA&container_type=project
+
         containers.append({
             "id": obj.id,
             "name": obj.name,
+            "short_name": obj.name.split("/")[-1],
             "description": desc,
             "type": "Project" if obj.OMERO_CLASS == "Project" else "Screen",
             "kvps": kvps,
+            "csv_download": f"{study_bff_url}&file_type=csv",
+            "parquet_download": f"{study_bff_url}&file_type=parquet",
+            "bff_url_csv": get_bff_url(request, study_bff_url, f"{obj.name}.csv", ext="csv"),
+            "bff_url_parquet": get_bff_url(request, study_bff_url, f"{obj.name}.parquet", ext="parquet"),
+            "empty_study_container": "experiment" not in obj.name and "screen" not in obj.name,
         })
 
     img_objects = []
@@ -182,8 +200,9 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         img_objects.extend(_get_study_images(conn, obj["type"], obj["id"], tag_text="Study Example Image"))
 
     if len(img_objects) == 0:
-        # None found with Tag - just load untagged image
-        img_objects = _get_study_images(conn, obj["type"], obj["id"])
+        for obj in containers:
+            # None found with Tag - just load untagged image
+            img_objects.extend(_get_study_images(conn, obj["type"], obj["id"]))
     images = [{"id": o.id.val, "name": o.name.val} for o in img_objects]
 
     # Use first image to get download & path info...
@@ -220,6 +239,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
 
     context = {
         "template": "idr_gallery/idr_study.html",
+        "base_url": base_url,
         "globus_origin_id": EMBL_EBI_PUBLIC_GLOBUS_ID,
         "idr_id": idrid,
         "idrid_name": idrid_name,
@@ -396,10 +416,13 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
     params.theFilter = omero.sys.Filter()
     params.theFilter.limit = wrap(limit)
     params.theFilter.offset = wrap(offset)
+    fetch_anns = ""
     and_text_value = ""
     if tag_text is not None:
         params.addString("tag_text", tag_text)
         and_text_value = " and annotation.textValue = :tag_text"
+        fetch_anns = " left outer join i.annotationLinks as al"\
+                     " join al.child as annotation"
 
     if obj_type.lower() == "project":
         query = "select i from Image as i"\
@@ -407,8 +430,7 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
                 " join dl.parent as dataset"\
                 " left outer join dataset.projectLinks"\
                 " as pl join pl.parent as project"\
-                " left outer join i.annotationLinks as al"\
-                " join al.child as annotation"\
+                + fetch_anns + \
                 " where project.id = :id%s" % and_text_value
 
     elif obj_type.lower() == "screen":
@@ -418,8 +440,7 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
                  " join well.plate as pt"
                  " left outer join pt.screenLinks as sl"
                  " join sl.parent as screen"
-                 " left outer join i.annotationLinks as al"
-                 " join al.child as annotation"
+                 + fetch_anns + \
                  " where screen.id = :id%s"
                  " order by well.column, well.row" % and_text_value)
 
@@ -468,3 +489,19 @@ def api_thumbnails(request, conn=None, **kwargs):
         except KeyError:
             logger.error("Thumbnail not available. (img id: %d)" % i)
     return rv
+
+
+def get_bff_url(request, data_url, fname, ext="csv"):
+    """
+    We build config into query params for the BFF app
+    """
+    data_url = f"{data_url}&file_type={ext}"
+    data_url = request.build_absolute_uri(data_url)
+    source = {
+        "uri": data_url,
+        "type": ext,
+        "name": fname,
+    }
+    s = urllib.parse.quote(json.dumps(source))
+    bff_url = f"{BFF_URL}?source={s}"
+    return bff_url
