@@ -138,7 +138,7 @@ function autocompleteSort(key, queryVal, knownKeys = []) {
   // knownKeys is list of common keys e.g. ["Gene Symbol", "Antibody"] etc.
 
   queryVal = queryVal.toLowerCase();
-  // const KNOWN_KEYS = [].concat(...Object.values(this.resources_data));
+  // const known_keys = [].concat(...Object.values(this.resources_data));
   return (a, b) => {
     // if exact match key or value, show first
     let aMatch = queryVal == a.Value.toLowerCase();

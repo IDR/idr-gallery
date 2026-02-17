@@ -1,6 +1,7 @@
 
 
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, Http404, JsonResponse
+from django.http import (HttpResponseRedirect, HttpResponseBadRequest,
+                         Http404, JsonResponse)
 from django.urls import reverse, NoReverseMatch
 import json
 import logging
@@ -9,7 +10,7 @@ import urllib
 from collections import defaultdict
 
 import omero
-from omero.rtypes import wrap, rlong, rstring
+from omero.rtypes import wrap, rlong
 from omeroweb.webclient.decorators import login_required, render_response
 from omeroweb.api.decorators import login_required as api_login_required
 from omeroweb.api.api_settings import API_MAX_LIMIT
@@ -21,7 +22,8 @@ from . import gallery_settings as settings
 from .data.background_images import IDR_IMAGES, TISSUE_IMAGES, CELL_IMAGES
 from .data.tabs import TABS
 from .version import VERSION
-from .utils import get_image_info, BIA_URL, parse_kvp_with_link, prefix_http, split_link
+from .utils import (get_image_info, BIA_URL,
+                    parse_kvp_with_link, prefix_http, split_link)
 
 try:
     from omero_mapr import mapr_settings
@@ -79,7 +81,8 @@ def index(request, super_category=None, conn=None, **kwargs):
                                                 value=keyval[1],
                                                 operator="contains")
             # handle e.g. ?query=Publication%20Authors:smith
-            # ?key=Publication+Authors&value=Smith&operator=contains&resource=container
+            # ?key=Publication+Authors&value=Smith&operator=
+            # contains&resource=container
             keyval = query.split(":", 1)
             if len(keyval) > 1 and len(keyval[1]) > 0:
                 # search for studies ("containers") and use "contains" for "authors"
@@ -131,9 +134,11 @@ def _escape_chars_like(query):
 @render_response()
 def study_page(request, idrid, format="html", conn=None, **kwargs):
 
-    if len(idrid) != 7 or not idrid.startswith("idr") or not idrid[3:].isdigit():
-        raise Http404("Invalid IDR ID. IDR IDs should be in the form idrXXXX")
-    
+    if (len(idrid) != 7 or not
+            idrid.startswith("idr") or not idrid[3:].isdigit()):
+        raise Http404("Invalid IDR ID. \
+                    IDR IDs should be in the form idrXXXX")
+
     # find Project(s) or Screen(s) with this IDRID
     # query_service = conn.getQueryService()
     # params = omero.sys.ParametersI()
@@ -144,11 +149,12 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
     # "like" search not working above. Just iterate and check names!
     objs = [p for p in conn.getObjects("Project") if p.name.startswith(idrid)]
     if len(objs) == 0:
-        objs = [s for s in conn.getObjects("Screen") if s.name.startswith(idrid)]
+        objs = [s for s in conn.getObjects("Screen")
+                if s.name.startswith(idrid)]
 
     if len(objs) == 0:
         raise Http404("No Project or Screen found for %s" % idrid)
-    
+
     # E.g."idr0098-huang-octmos", "idr0098-huang-octmos/experimentA", then "B"
     objs.sort(key=lambda x: (len(x.name), x.name))
 
@@ -159,8 +165,9 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         pids = [objs[0].id]
     else:
         sids = [objs[0].id]
-    anns, experimenters = marshal_annotations(conn, project_ids=pids, screen_ids=sids,
-                                              ann_type="map", ns="idr.openmicroscopy.org/study/info")
+    anns, experimenters = (marshal_annotations(conn, project_ids=pids,
+                           screen_ids=sids, ann_type="map",
+                           ns="idr.openmicroscopy.org/study/info"))
     kvps = defaultdict(list)
     for ann in anns:
         for kvp in ann["values"]:
@@ -180,8 +187,11 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
             if f"{token} Description" in desc:
                 desc = desc.split(f"{token} Description", 1)[1].strip()
         otype = "project" if obj.OMERO_CLASS == "Project" else "screen"
-        study_bff_url = f"{bff_url}?container_name={obj.name}&container_type={otype}"
-        # https://idr-testing.openmicroscopy.org/searchengine//api/v1/resources/container_bff_data/?container_name=idr0164-alzubi-hdbr%2FexperimentA&container_type=project
+        study_bff_url = f"{bff_url}?container_name={obj.name}\
+                        &container_type={otype}"
+        # https://idr-testing.openmicroscopy.org/searchengine//api/v1/resources/
+        # container_bff_data/?container_name=idr0164-alzubi-hdbr%2FexperimentA&
+        # container_type=project
 
         containers.append({
             "id": obj.id,
@@ -192,20 +202,28 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
             "kvps": kvps,
             "csv_download": f"{study_bff_url}&file_type=csv",
             "parquet_download": f"{study_bff_url}&file_type=parquet",
-            "bff_url_csv": get_bff_url(request, study_bff_url, f"{obj.name}.csv", ext="csv"),
-            "bff_url_parquet": get_bff_url(request, study_bff_url, f"{obj.name}.parquet", ext="parquet"),
-            "empty_study_container": "experiment" not in obj.name and "screen" not in obj.name,
+            "bff_url_csv": get_bff_url(request, study_bff_url,
+                                       f"{obj.name}.csv", ext="csv"),
+            "bff_url_parquet": get_bff_url(request, study_bff_url,
+                                           f"{obj.name}.parquet",
+                                           ext="parquet"),
+            "empty_study_container": ("experiment" not in obj.name
+                                      and "screen" not in obj.name,)
         })
 
     img_objects = []
     for obj in containers:
-        img_objects.extend(_get_study_images(conn, obj["type"], obj["id"], tag_text="Study Example Image"))
+        img_objects.extend(_get_study_images
+                           (conn, obj["type"], obj["id"],
+                            tag_text="Study Example Image"))
 
     if len(img_objects) == 0:
         for obj in containers:
             # None found with Tag - just load untagged image
-            img_objects.extend(_get_study_images(conn, obj["type"], obj["id"]))
-    images = [{"id": o.id.val, "name": o.name.val} for o in img_objects]
+            img_objects.extend(_get_study_images
+                               (conn, obj["type"], obj["id"]))
+    images = [{"id": o.id.val, "name": o.name.val}
+              for o in img_objects]
 
     # Use first image to get download & path info...
     img_info = get_image_info(conn, images[0]["id"])
@@ -216,19 +234,24 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
     bia_ngff_id = None
     idrid_name = containers[0]["name"].split("/")[0]
     if data_location == "IDR" or data_location == "Github":
-        # then link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
+        # then link to Download e.g.
+        # https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
         # e.g. idr0002-heriche-condensation
         download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
 
     if data_location == "Embassy_S3":
-        # "mkngff" data is at https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/idr_ngff_data.html
+        # "mkngff" data is at
+        # https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/
+        # pages/idr_ngff_data.html
         bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
 
-    KNOWN_KEYS = ["Publication Authors", "Study Title", "Publication Title", "Publication DOI", "Data DOI", "License", 
-                  "PubMed ID", "PMC ID", "Release Date", "External URL", "Annotation File", "BioStudies Accession"]
+    known_keys = ["Publication Authors", "Study Title", "Publication Title",
+                  "Publication DOI", "Data DOI", "License",
+                  "PubMed ID", "PMC ID", "Release Date", "External URL",
+                  "Annotation File", "BioStudies Accession"]
     other_kvps = []
     for k, v in kvps.items():
-        if k in KNOWN_KEYS:
+        if k in known_keys:
             continue
         for value in v:
             other_kvps.append([k, value])
@@ -259,9 +282,11 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         "license": parse_kvp_with_link("License", kvps),
         "pubmed_id": parse_kvp_with_link("PubMed ID", kvps),
         "pmc_id": parse_kvp_with_link("PMC ID", kvps),
-        "release_date": kvps.get("Release Date")[0] if "Release Date" in kvps else None,
-        "external_urls": [prefix_http(url) for url in kvps.get("External URL", [])],
-        "annotation_files": [split_link(link) for link in kvps.get("Annotation File", [])],
+        "release_date": kvps.get("Release Date")[0] if "Release Date" in kvps else None, # noqa
+        "external_urls": [prefix_http(url)
+                          for url in kvps.get("External URL", [])],
+        "annotation_files": [split_link(link)
+                             for link in kvps.get("Annotation File", [])],
         "bia_accession": parse_kvp_with_link("BioStudies Accession", kvps),
         "other_kvps": other_kvps,
         "jsonld": json.dumps(jsonld, indent=2),
@@ -442,7 +467,7 @@ def _get_study_images(conn, obj_type, obj_id, limit=1,
                  " join well.plate as pt"
                  " left outer join pt.screenLinks as sl"
                  " join sl.parent as screen"
-                 + fetch_anns + \
+                 + fetch_anns +
                  " where screen.id = :id%s"
                  " order by well.column, well.row" % and_text_value)
 
