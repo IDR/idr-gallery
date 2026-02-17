@@ -1,4 +1,11 @@
 
+3.14.0 (February 2026)
+----------------------
+
+- Study pages link to BioFile Finder [#51](https://github.com/IDR/idr-gallery/pull/51)
+- Replace X with bsky in footer [#53](https://github.com/IDR/idr-gallery/pull/53)
+- Search query redirects to use 'equals' operator [#54](https://github.com/IDR/idr-gallery/pull/54)
+
 3.13.1 (June 2025)
 ------------------
 
