@@ -8,7 +8,7 @@ urlpatterns = [
     re_path(r'^$', views.index, name='idr_gallery_index'),
 
     path("study/<slug:idrid>/", views.study_page, name='idr_gallery_study'),
-    path("study/<slug:idrid>/json/", views.study_page, {"format":"jsonld"},
+    path("study/<slug:idrid>/json/", views.study_page, {"format": "jsonld"},
          name='idr_gallery_study_jsonld'),
 
     # All settings as JSON
