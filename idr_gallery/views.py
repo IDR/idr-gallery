@@ -85,7 +85,8 @@ def index(request, super_category=None, conn=None, **kwargs):
             # contains&resource=container
             keyval = query.split(":", 1)
             if len(keyval) > 1 and len(keyval[1]) > 0:
-                # search for studies ("containers") and use "contains" for "authors"
+                # search for studies ("containers") and
+                # use "contains" for "authors"
                 # but otherwise use "equals"
                 # to match previous behaviour
                 # NB: 'Name' needs to be 'name' for search-engine
