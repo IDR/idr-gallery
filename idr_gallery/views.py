@@ -533,3 +533,33 @@ def get_bff_url(request, data_url, fname, ext="csv"):
     s = urllib.parse.quote(json.dumps(source))
     bff_url = f"{BFF_URL}?source={s}"
     return bff_url
+
+
+@render_response()
+def download_urls(request, conn=None, **kwargs):
+    """
+    Return a page with download URLs for all studies.
+    """
+    context = {
+        "template": "idr_gallery/download_urls.html",
+        "VERSION": VERSION,
+    }
+    # settings_ctx = get_settings_as_context()
+    # context = {**context, **settings_ctx}
+    return context
+
+
+def link_check(request):
+    """
+    API endpoint to check if a URL is valid, used by download_urls page
+    """
+    url = request.GET.get("url")
+    if url is None:
+        return HttpResponseBadRequest("Missing 'url' parameter")
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=5)
+        is_valid = response.ok
+    except requests.RequestException:
+        is_valid = False
+    return JsonResponse({"url": url, "is_valid": is_valid, "status_code": response.status_code if is_valid else None})
+    
