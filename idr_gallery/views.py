@@ -561,5 +561,6 @@ def link_check(request):
         is_valid = response.ok
     except requests.RequestException:
         is_valid = False
-    return JsonResponse({"url": url, "is_valid": is_valid, "status_code": response.status_code if is_valid else None})
-    
+    status_code = response.status_code if is_valid else None
+    return JsonResponse({"url": url, "is_valid": is_valid,
+                         "status_code": status_code})
