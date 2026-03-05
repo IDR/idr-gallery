@@ -11,7 +11,8 @@
     </style>
     <body>
         <h1>Image Archived</h1>
-        <h2>Name: {{ image.name }}</h2>
+        <h2>Study: {{ idr_study }}</h2>
+        <h2>Image Name: {{ image.name }}</h2>
         <h3>ID: {{ image.id }}</h3>
         <p>This image is archived and cannot be viewed.</p>
 
@@ -22,5 +23,17 @@
             <li>Download URL: <a href="{{ download_url }}">{{ download_url }}</a></li>
             <li>BIA NGFF ID: {{ bia_ngff_id }}</li>
         </ul>
+
+        <h3>Image Files</h3>
+        {% if fileset %}
+            <h2>Fileset ID: {{ fileset.id }}</h2>
+            <ul>
+                {% for file in fileset.file_urls %}
+                    <li><a href="{{ file.url }}">{{ file.path }}</a></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No associated fileset.</p>
+        {% endif %}
     </body>
 </html>

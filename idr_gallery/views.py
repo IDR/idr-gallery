@@ -473,7 +473,7 @@ def api_thumbnails(request, conn=None, **kwargs):
 @render_response()
 def image_viewer(request, iid, conn=None, **kwargs):
     """
-    Check if image is archived before returning iviewer response
+    Check if image is OME-Zarr (externalInfo) before returning iviewer response
     """
     image = conn.getObject("Image", iid)
 
@@ -482,8 +482,8 @@ def image_viewer(request, iid, conn=None, **kwargs):
     if image is None:
         raise Http404("Image with ID %s not found" % iid)
     
-    if not image.archived:
-        return iviewer_index(request, iid, conn=conn, **kwargs)
+    # if not image.archived:
+    #     return iviewer_index(request, iid, conn=conn, **kwargs)
     
     ext_info = image.getDetails().externalInfo
     if ext_info is not None:
@@ -511,8 +511,8 @@ def image_viewer(request, iid, conn=None, **kwargs):
         # "mkngff" data is at https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/idr_ngff_data.html
         bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
 
-
-    return {
+    rsp_json = {
+        "idr_study": idrid_name,
         "template": "idr_gallery/archived_image.html",
         "image": {
             "id": image.id,
@@ -524,3 +524,18 @@ def image_viewer(request, iid, conn=None, **kwargs):
         "download_url": download_url,
         "bia_ngff_id": bia_ngff_id,
     }
+    if image.fileset is not None:
+        paths = image.getImportedImageFilePaths()
+        file_urls = []
+        for path in paths["client_paths"]:
+            if idrid_name in path:
+                file_path = path.split(idrid_name, 1)[-1]
+                file_urls.append({"url": f"{download_url}{file_path}", "path": file_path})
+        fileset_id = image.fileset.id.val
+        rsp_json["fileset"] = {
+            "id": fileset_id,
+            "client_paths": paths["client_paths"],
+            "file_urls": file_urls,
+        }
+
+    return rsp_json
