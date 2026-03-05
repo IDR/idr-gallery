@@ -531,6 +531,8 @@ def image_viewer(request, iid, conn=None, **kwargs):
             if idrid_name in path:
                 file_path = path.split(idrid_name, 1)[-1]
                 file_urls.append({"url": f"{download_url}{file_path}", "path": file_path})
+            else:
+                file_urls.append({"url": None, "path": path})
         fileset_id = image.fileset.id.val
         rsp_json["fileset"] = {
             "id": fileset_id,

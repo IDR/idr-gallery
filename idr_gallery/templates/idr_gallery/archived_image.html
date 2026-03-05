@@ -1,39 +1,48 @@
 
-<html>
-    <head>
-        <title>IDR: Archived Image</title>
-    </head>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-    </style>
-    <body>
-        <h1>Image Archived</h1>
-        <h2>Study: {{ idr_study }}</h2>
-        <h2>Image Name: {{ image.name }}</h2>
-        <h3>ID: {{ image.id }}</h3>
-        <p>This image is archived and cannot be viewed.</p>
+{% extends "idr_gallery/base.html" %}
 
-        <ul>
-            <li>Image Path: {{ img_path }}</li>
-            <li>Data Location: {{ data_location }}</li>
-            <li>Is Zarr?: {{ is_zarr }}</li>
-            <li>Download URL: <a href="{{ download_url }}">{{ download_url }}</a></li>
-            <li>BIA NGFF ID: {{ bia_ngff_id }}</li>
-        </ul>
+{% block content %}
 
+<style>
+    article {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+</style>
+
+<article>
+    <h1>Image Archived</h1>
+    <h2>Study: {{ idr_study }}</h2>
+    <h2>Image Name: {{ image.name }}</h2>
+    <h3>ID: {{ image.id }}</h3>
+    <p>This image is archived and cannot be viewed.</p>
+
+    {% if fileset %}
         <h3>Image Files</h3>
-        {% if fileset %}
-            <h2>Fileset ID: {{ fileset.id }}</h2>
-            <ul>
-                {% for file in fileset.file_urls %}
-                    <li><a href="{{ file.url }}">{{ file.path }}</a></li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No associated fileset.</p>
-        {% endif %}
-    </body>
-</html>
+        <p>The following files are associated with this image:</p>
+        <ul>
+            {% for file in fileset.file_urls %}
+                <li>
+                    {% if file.url %}
+                        <a href="{{ file.url }}">{{ file.path }}</a>
+                    {% else %}
+                        {{ file.path }}
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No associated fileset.</p>
+    {% endif %}
+
+    <ul style="background: white;">
+        <li>Image Path: {{ img_path }}</li>
+        <li>Data Location: {{ data_location }}</li>
+        <li>Is Zarr?: {{ is_zarr }}</li>
+        <li>Download URL: <a href="{{ download_url }}">{{ download_url }}</a></li>
+        <li>BIA NGFF ID: {{ bia_ngff_id }}</li>
+    </ul>
+</article>
+
+{% endblock %}
