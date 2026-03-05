@@ -209,7 +209,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
                                            f"{obj.name}.parquet",
                                            ext="parquet"),
             "empty_study_container": ("experiment" not in obj.name
-                                      and "screen" not in obj.name,)
+                                      and "screen" not in obj.name)
         })
 
     img_objects = []
