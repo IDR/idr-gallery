@@ -1,0 +1,134 @@
+{% extends "idr_gallery/base.html" %}
+
+{% block content %}
+
+
+<style>
+  body {
+    background-color: #f6f6f9;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+</style>
+
+<h1>Download URLs</h1>
+
+<div id="table-container">
+  <p>Loading download URLs...</p>
+</div>
+
+<script>
+
+  function checkLinks() {
+    let links = Array.from(document.querySelectorAll('a'));
+    // links = links.slice(0,50)
+    links.forEach(link => {
+      // no corss-origin check for now, just check if the link is valid
+      fetch(link.href, { method: 'HEAD'})
+        .then(response => {
+          // console.log("response.ok", response.ok, link.href);
+          link.style.color =  response.ok ? 'green' : 'orange';
+          link.title = response.ok ? 'Link is valid' : 'Link is broken';
+
+          if (!response.ok) {
+            // Use our custom link check endpoint to get more details on why the link is broken
+            // fetch(`/link_check/?url=${encodeURIComponent(link.href)}`)
+            //   .then(res => res.json())
+            //   .then(data => {
+            //     console.log('Link check data:', data);
+            //     if (data.is_valid) {
+            //       link.style.color = 'blue';
+            //       link.title = 'Link is valid (checked with server)';
+            //     } else {
+            //       link.style.color = 'yellow';
+            //       link.title = `Link is broken: ${data.error}`;
+            //     }
+            //   });
+          }
+        })
+        .catch(error => {
+          console.error('Error checking link:', error);
+          link.style.color = 'pink';
+          link.title = 'Error checking link';
+
+          fetch(`/link_check/?url=${encodeURIComponent(link.href)}`)
+              .then(res => res.json())
+              .then(data => {
+                console.log('Link check data:', data);
+                if (data.is_valid) {
+                  link.style.color = 'green';
+                  link.title = 'Link is valid (checked with server)';
+                } else {
+                  link.style.color = 'red';
+                  link.title = `Link is broken: ${data.error}`;
+                }
+              });
+        });
+    });
+  }
+
+  // Fetch the TSV file and display it in a table
+  fetch('https://raw.githubusercontent.com/will-moore/idr.openmicroscopy.org/refs/heads/download_urls/_data/download_urls.tsv')
+    .then(response => response.text())
+    .then(data => {
+      const lines = data.split('\n');
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+
+        // Create table header
+        const header = table.createTHead();
+        const headerRow = header.insertRow();
+        const headers = lines[0].split('\t');
+        headers.forEach(headerText => {
+          const th = document.createElement('th');
+          th.textContent = headerText;
+          th.style.border = '1px solid #ddd';
+          th.style.padding = '2px';
+          th.style.backgroundColor = '#f2f2f2';
+          headerRow.appendChild(th);
+        });
+
+        // Create table body
+        const tbody = table.createTBody();
+        lines.slice(1).forEach(line => {
+          if (line.trim() === '') return; // Skip empty lines
+          const row = tbody.insertRow();
+          const cells = line.split('\t');
+          cells.forEach(cellText => {
+            const td = document.createElement('td');
+            td.style.border = '1px solid #ddd';
+            td.style.padding = '2px';
+            if (cellText.startsWith('http')) {
+              const link = document.createElement('a');
+              link.href = cellText;
+              link.textContent = cellText;
+              link.target = '_blank';
+              td.textContent = '';
+              td.appendChild(link);
+            } else {
+              td.textContent = cellText;
+            }
+            row.appendChild(td);
+          });
+        });
+        const tableContainer = document.getElementById('table-container');
+        tableContainer.innerHTML = '';
+        tableContainer.appendChild(table);
+
+        checkLinks();
+    })
+    .catch(error => {
+      console.error('Error fetching TSV file:', error);
+      const tableContainer = document.getElementById('table-container');
+      tableContainer.innerHTML = '<p>Error loading download URLs.</p>';
+    });
+      
+</script>
+
+{% endblock %}
