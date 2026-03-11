@@ -94,19 +94,35 @@
           headerRow.appendChild(th);
         });
 
-        // Create table body
+        let clientPathIndex = headers.indexOf('client_path');
+        let downloadUrlIndex = headers.indexOf('download_url');
+        let idrIdIndex = headers.indexOf('idrid');
+
+        // Create table body - update client_path to URL, based on the download_url column...
         const tbody = table.createTBody();
         lines.slice(1).forEach(line => {
           if (line.trim() === '') return; // Skip empty lines
           const row = tbody.insertRow();
           const cells = line.split('\t');
-          cells.forEach(cellText => {
+
+          let idrId = cells[idrIdIndex];
+          let clientPath = cells[clientPathIndex];
+          let downloadUrl = cells[downloadUrlIndex];
+          let clientPathUrl;
+          // e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0001-graml-sysgro
+          if (downloadUrl.includes(idrId) && clientPath.includes(idrId)) {
+            let urlBase = downloadUrl.split(idrId)[0];
+            let urlPath = clientPath.split(idrId)[1];
+            clientPathUrl = urlBase + idrId + urlPath;
+          }
+
+          cells.forEach((cellText, colIndex) => {
             const td = document.createElement('td');
             td.style.border = '1px solid #ddd';
             td.style.padding = '2px';
-            if (cellText.startsWith('http')) {
+            if (cellText.startsWith('http') || (headers[colIndex] === 'client_path' && clientPathUrl)) {
               const link = document.createElement('a');
-              link.href = cellText;
+              link.href = cellText.startsWith('http') ? cellText : clientPathUrl;
               link.textContent = cellText;
               link.target = '_blank';
               td.textContent = '';
