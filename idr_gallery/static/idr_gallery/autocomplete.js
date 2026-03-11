@@ -2,12 +2,12 @@
 // use this to highlight auto-complete items. Uses css from jQueryUI
 let SELECT_CLASS = "ui-state-active";
 
-let KNOWN_KEYS = {};
+let known_keys = {};
 
 // immediately load keys from search engine. Used for autocomplete sorting
 url = `${SEARCH_ENGINE_URL}resources/all/keys/?mode=searchterms`;
 $.getJSON(url, function (data) {
-  KNOWN_KEYS = data;
+  known_keys = data;
 });
 
 document.getElementById("maprConfig").onchange = (event) => {
@@ -149,8 +149,8 @@ function autocompleteSort(queryVal) {
       return aMatch ? -1 : 1;
     }
     // show all known Keys before unknown
-    let aKnown = KNOWN_KEYS?.image?.includes(a.Key);
-    let bKnown = KNOWN_KEYS?.image?.includes(b.Key);
+    let aKnown = known_keys?.image?.includes(a.Key);
+    let bKnown = known_keys?.image?.includes(b.Key);
     if (aKnown != bKnown) {
       return aKnown ? -1 : 1;
     }

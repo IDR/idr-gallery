@@ -8,7 +8,7 @@ urlpatterns = [
     re_path(r'^$', views.index, name='idr_gallery_index'),
 
     path("study/<slug:idrid>/", views.study_page, name='idr_gallery_study'),
-    path("study/<slug:idrid>/json/", views.study_page, {"format":"jsonld"},
+    path("study/<slug:idrid>/json/", views.study_page, {"format": "jsonld"},
          name='idr_gallery_study_jsonld'),
 
     # All settings as JSON
@@ -17,6 +17,13 @@ urlpatterns = [
     # Search page shows Projects / Screens filtered by Map Annotation
     re_path(r'^search/$', views.index, {'super_category': None},
             name="idr_gallery_search"),
+
+    re_path(r'^download_urls/$', views.download_urls,
+            name="idr_gallery_download_urls"),
+
+    # Use ?url=... to check if a URL is valid, used by download_urls page
+    re_path(r'^link_check/$', views.link_check,
+            name="idr_gallery_link_check"),
 
     # Supports e.g. ?project=1&project=2&screen=3
     re_path(r'^gallery-api/thumbnails/$', views.api_thumbnails,
