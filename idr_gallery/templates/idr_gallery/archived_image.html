@@ -12,15 +12,18 @@
 </style>
 
 <article>
-    <h1>Image Archived</h1>
+    <h1>Image is not viewable</h1>
     <h2>Study: {{ idr_study }}</h2>
     <h2>Image Name: {{ image.name }}</h2>
     <h3>ID: {{ image.id }}</h3>
-    <p>This image is archived and cannot be viewed.</p>
+    <p>
+        Due to infrastructure limitations, this image is not viewable.
+        The IDR only supports the viewing of OME-Zarr images.
+    </p>
 
     {% if fileset %}
         <h3>Image Files</h3>
-        <p>The following files are associated with this image:</p>
+        <p>The following files are associated with this image and can be downloaded for offline viewing or analysis:</p>
         <ul>
             {% for file in fileset.file_urls %}
                 <li>
