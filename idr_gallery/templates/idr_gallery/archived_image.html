@@ -1,0 +1,148 @@
+{% extends "idr_gallery/base.html" %} {% block content %}
+
+<style>
+  article {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  ul {
+    list-style: none;
+    background: white;
+    margin: 0;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+  }
+</style>
+
+<article>
+  <h1>This Image is not viewable</h1>
+  <h2>Image Name: {{ image.name }}</h2>
+  <strong>ID: {{ image.id }}</strong><br />
+  <strong>Study: {{ idr_study }}</strong>
+  <p>
+    Due to infrastructure limitations, this image is not viewable. The IDR only
+    supports the viewing of OME-Zarr images.
+  </p>
+
+  {% if fileset %}
+  <h3>Image Files</h3>
+  {% if fileset.file_urls|length == 1 %}
+  <p>There is 1 file associated with this image:</p>
+  {% else %}
+  <p>
+    There are {{ fileset.file_urls|length }} files associated with this image
+    which can be downloaded from the links below. For more download options,
+    including bulk download using Globus or FTP clients, see the
+    <a href="/about/download.html">IDR Data download page</a>.
+  </p>
+  {% endif %}
+  <ul>
+    {% for file in fileset.file_urls %}
+    <li>
+      {% if file.url %}
+      <a class="file_download" href="{{ file.url }}">{{ file.path }}</a>
+      {% else %} {{ file.path }} {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No associated fileset.</p>
+  {% endif %} Extra info (debug)
+  <ul style="background: white">
+    <li>Image Path: {{ img_path }}</li>
+    <li>Data Location: {{ data_location }}</li>
+    <li>Is Zarr?: {{ is_zarr }}</li>
+    <li>Download URL: <a href="{{ download_url }}">{{ download_url }}</a></li>
+    <li>BIA NGFF ID: {{ bia_ngff_id }}</li>
+  </ul>
+</article>
+
+<script>
+  const IDR_ID_NAME = "{{ idr_study }}";
+  let IDR_ID = IDR_ID_NAME.split("-")[0];
+  let DOWNLOAD_URL = "{{ download_url }}";
+
+  function checkLinks() {
+    let links = Array.from(document.querySelectorAll("a"));
+    // links = links.slice(0,50)
+    links.forEach((link) => {
+      // ignore image viewer links
+      if (!link.href || link.href.includes("img_detail")) return;
+      // no cors-origin check for now, just check if the link is valid
+      fetch(link.href, { method: "HEAD" })
+        .then((response) => {
+          link.style.color = response.ok ? "green" : "orange";
+          link.title = response.ok ? "Link is valid" : "Link is broken";
+        })
+        .catch((error) => {
+          // show "pink" and re-try with server-side check, to avoid CORS issues
+          console.error("Error checking link:", error);
+          link.style.color = "pink";
+          link.title = "Error checking link";
+
+          fetch(`/link_check/?url=${encodeURIComponent(link.href)}`)
+            .then((res) => res.json())
+            .then((data) => {
+              console.log("Link check data:", data);
+              if (data.is_valid) {
+                link.style.color = "green";
+                link.title = "Link is valid (checked with server)";
+              } else {
+                link.style.color = "red";
+                link.title = `Link is broken: ${data.error}`;
+              }
+            });
+        });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // Load download URLs from TSV file in GitHub to fix the download URL for this image
+    fetch(
+      "https://raw.githubusercontent.com/will-moore/idr.openmicroscopy.org/refs/heads/download_urls/_data/download_urls.tsv",
+    )
+      .then((response) => response.text())
+      .then((data) => {
+        const lines = data.split("\n");
+
+        // Use first line as header to find column names...
+        const headers = lines[0].split("\t");
+
+        const idrIndex = headers.indexOf("idrid");
+
+        // Find the line for this IDR ID
+        const studyLine = lines.find(
+          (line) => line.split("\t")[idrIndex] === IDR_ID,
+        );
+        console.log(`Found line for ${IDR_ID}:`, studyLine);
+        if (studyLine) {
+          const cells = studyLine.split("\t");
+          const downloadUrlIndex = headers.indexOf("download_url");
+          // downloadUrl e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0047-neuert-yeastmrna/
+          const downloadUrl = cells[downloadUrlIndex];
+          const baseUrl = downloadUrl.split(IDR_ID)[0];    // e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/
+          console.log(`Download URL for ${IDR_ID}:`, downloadUrl);
+          if (downloadUrl) {
+            // update all ".file_download" links to this download URL
+            const fileDownloadLinks =
+              document.querySelectorAll(".file_download");
+            fileDownloadLinks.forEach((link) => {
+              link.href = link.href.replace(DOWNLOAD_URL, baseUrl);
+            });
+          }
+        } else {
+          console.warn(`No download URL found for ${IDR_ID} in TSV file`);
+        }
+
+        // After updating links, check them if ?check_links=1 is in the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("check_links")) {
+          checkLinks();
+        }
+      });
+  });
+</script>
+
+{% endblock %}

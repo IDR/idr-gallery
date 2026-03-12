@@ -1,0 +1,154 @@
+{% extends "idr_gallery/base.html" %}
+
+{% block content %}
+
+
+<style>
+  body {
+    background-color: #f6f6f9;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+</style>
+
+<h1>Download URLs</h1>
+
+<div id="table-container">
+  <p>Loading download URLs...</p>
+</div>
+
+<script>
+
+  async function checkLinks() {
+    let links = Array.from(document.querySelectorAll('a'));
+    // links = links.slice(0,50)
+    for (let link of links) {
+      console.log('Checking link:', link);
+    // links.forEach(async link => {
+      // ignore image viewer links
+      if (!link.href || link.href.includes("img_detail")) {
+        continue;
+      };
+      // no cors-origin check for now, just check if the link is valid
+      let ok = await fetch(link.href, { method: 'HEAD'})
+        .then(response => {
+          link.style.color =  response.ok ? 'green' : 'orange';
+          link.title = response.ok ? 'Link is valid' : 'Link is broken';
+          return true;
+        })
+        .catch(error => {
+          console.error('Error checking link:', error);
+          return false;
+        });
+      if (!ok) {
+        // show "pink" and re-try with server-side check, to avoid CORS issues
+        link.style.color = 'pink';
+        link.title = 'Error checking link';
+
+        await fetch(`/link_check/?url=${encodeURIComponent(link.href)}`)
+          .then(res => res.json())
+          .then(data => {
+            console.log('Link check data:', data);
+            if (data.is_valid) {
+              link.style.color = 'green';
+              link.title = 'Link is valid (checked with server)';
+            } else {
+              link.style.color = 'red';
+              link.title = `Link is broken: ${data.error}`;
+            }
+          });
+        }
+    };
+  }
+
+  // Fetch the TSV file and display it in a table
+  fetch('https://raw.githubusercontent.com/will-moore/idr.openmicroscopy.org/refs/heads/download_urls/_data/download_urls.tsv')
+    .then(response => response.text())
+    .then(data => {
+      const lines = data.split('\n');
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+
+        // Create table header
+        const header = table.createTHead();
+        const headerRow = header.insertRow();
+        const headers = lines[0].split('\t');
+        headers.forEach(headerText => {
+          const th = document.createElement('th');
+          th.textContent = headerText;
+          th.style.border = '1px solid #ddd';
+          th.style.padding = '2px';
+          th.style.backgroundColor = '#f2f2f2';
+          headerRow.appendChild(th);
+        });
+
+        let clientPathIndex = headers.indexOf('client_path');
+        let downloadUrlIndex = headers.indexOf('download_url');
+        let idrIdIndex = headers.indexOf('idrid');
+        let imageIdIndex = headers.indexOf('image_id');
+
+        // Create table body - update client_path to URL, based on the download_url column...
+        const tbody = table.createTBody();
+        lines.slice(1).forEach(line => {
+          if (line.trim() === '') return; // Skip empty lines
+          const row = tbody.insertRow();
+          const cells = line.split('\t');
+
+          let idrId = cells[idrIdIndex];
+          let clientPath = cells[clientPathIndex];
+          let downloadUrl = cells[downloadUrlIndex];
+          let clientPathUrl;
+          // e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0001-graml-sysgro
+          if (downloadUrl.includes(idrId) && clientPath.includes(idrId)) {
+            let urlBase = downloadUrl.split(idrId)[0];
+            let urlPath = clientPath.split(idrId)[1];
+            clientPathUrl = urlBase + idrId + urlPath;
+          }
+
+          cells.forEach((cellText, colIndex) => {
+            const td = document.createElement('td');
+            td.style.border = '1px solid #ddd';
+            td.style.padding = '2px';
+            // handle links or 'client_path' column...
+            if (cellText.startsWith('http') || (headers[colIndex] === 'client_path' && clientPathUrl)) {
+              const link = document.createElement('a');
+              link.href = cellText.startsWith('http') ? cellText : clientPathUrl;
+              link.textContent = cellText;
+              link.target = '_blank';
+              td.textContent = '';
+              td.appendChild(link);
+            } else if (colIndex == imageIdIndex) {
+              // Add link to image viewer at /webclient/img_detail/1884807/
+              const link = document.createElement('a');
+              link.href = `/webclient/img_detail/${cellText}/?check_links=true`;
+              link.textContent = cellText;
+              link.target = '_blank';
+              td.textContent = '';
+              td.appendChild(link);
+            } else {
+              td.textContent = cellText;
+            }
+            row.appendChild(td);
+          });
+        });
+        const tableContainer = document.getElementById('table-container');
+        tableContainer.innerHTML = '';
+        tableContainer.appendChild(table);
+
+        checkLinks();
+    })
+    .catch(error => {
+      console.error('Error fetching TSV file:', error);
+      const tableContainer = document.getElementById('table-container');
+      tableContainer.innerHTML = '<p>Error loading download URLs.</p>';
+    });
+      
+</script>
+
+{% endblock %}
