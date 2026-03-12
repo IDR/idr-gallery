@@ -555,7 +555,7 @@ def image_viewer(request, iid, conn=None, **kwargs):
     if data_location == "IDR" or data_location == "Github":
         # then link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
         # e.g. idr0002-heriche-condensation
-        download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
+        download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/"
 
     if data_location == "Embassy_S3":
         # "mkngff" data is at https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/idr_ngff_data.html
@@ -577,10 +577,14 @@ def image_viewer(request, iid, conn=None, **kwargs):
     if image.fileset is not None:
         paths = image.getImportedImageFilePaths()
         file_urls = []
+        idrid = idrid_name.split("-")[0]  # e.g. idr0002
         for path in paths["client_paths"]:
-            if idrid_name in path:
-                file_path = path.split(idrid_name, 1)[-1]
-                file_urls.append({"url": f"{download_url}{file_path}", "path": file_path})
+            if idrid in path:
+                file_path = path.split(idrid, 1)[-1]
+                # url_prefix = download_url.split(idrid, 1)[0] if download_url else ""
+                # url encode the file path to handle spaces and special characters
+                file_path = urllib.parse.quote(file_path)
+                file_urls.append({"url": f"{download_url}{idrid}{file_path}", "path": file_path})
             else:
                 file_urls.append({"url": None, "path": path})
         fileset_id = image.fileset.id.val

@@ -28,30 +28,16 @@
     let links = Array.from(document.querySelectorAll('a'));
     // links = links.slice(0,50)
     links.forEach(link => {
-      // no corss-origin check for now, just check if the link is valid
+      // ignore image viewer links
+      if (!link.href || link.href.includes("img_detail")) return;
+      // no cors-origin check for now, just check if the link is valid
       fetch(link.href, { method: 'HEAD'})
         .then(response => {
-          // console.log("response.ok", response.ok, link.href);
           link.style.color =  response.ok ? 'green' : 'orange';
           link.title = response.ok ? 'Link is valid' : 'Link is broken';
-
-          if (!response.ok) {
-            // Use our custom link check endpoint to get more details on why the link is broken
-            // fetch(`/link_check/?url=${encodeURIComponent(link.href)}`)
-            //   .then(res => res.json())
-            //   .then(data => {
-            //     console.log('Link check data:', data);
-            //     if (data.is_valid) {
-            //       link.style.color = 'blue';
-            //       link.title = 'Link is valid (checked with server)';
-            //     } else {
-            //       link.style.color = 'yellow';
-            //       link.title = `Link is broken: ${data.error}`;
-            //     }
-            //   });
-          }
         })
         .catch(error => {
+          // show "pink" and re-try with server-side check, to avoid CORS issues
           console.error('Error checking link:', error);
           link.style.color = 'pink';
           link.title = 'Error checking link';
@@ -97,6 +83,7 @@
         let clientPathIndex = headers.indexOf('client_path');
         let downloadUrlIndex = headers.indexOf('download_url');
         let idrIdIndex = headers.indexOf('idrid');
+        let imageIdIndex = headers.indexOf('image_id');
 
         // Create table body - update client_path to URL, based on the download_url column...
         const tbody = table.createTBody();
@@ -120,9 +107,18 @@
             const td = document.createElement('td');
             td.style.border = '1px solid #ddd';
             td.style.padding = '2px';
+            // handle links or 'client_path' column...
             if (cellText.startsWith('http') || (headers[colIndex] === 'client_path' && clientPathUrl)) {
               const link = document.createElement('a');
               link.href = cellText.startsWith('http') ? cellText : clientPathUrl;
+              link.textContent = cellText;
+              link.target = '_blank';
+              td.textContent = '';
+              td.appendChild(link);
+            } else if (colIndex == imageIdIndex) {
+              // Add link to image viewer at /webclient/img_detail/1884807/
+              const link = document.createElement('a');
+              link.href = `/webclient/img_detail/${cellText}/?check_links=true`;
               link.textContent = cellText;
               link.target = '_blank';
               td.textContent = '';
