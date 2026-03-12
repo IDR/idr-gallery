@@ -24,38 +24,46 @@
 
 <script>
 
-  function checkLinks() {
+  async function checkLinks() {
     let links = Array.from(document.querySelectorAll('a'));
     // links = links.slice(0,50)
-    links.forEach(link => {
+    for (let link of links) {
+      console.log('Checking link:', link);
+    // links.forEach(async link => {
       // ignore image viewer links
-      if (!link.href || link.href.includes("img_detail")) return;
+      if (!link.href || link.href.includes("img_detail")) {
+        continue;
+      };
       // no cors-origin check for now, just check if the link is valid
-      fetch(link.href, { method: 'HEAD'})
+      let ok = await fetch(link.href, { method: 'HEAD'})
         .then(response => {
           link.style.color =  response.ok ? 'green' : 'orange';
           link.title = response.ok ? 'Link is valid' : 'Link is broken';
+          return true;
         })
         .catch(error => {
-          // show "pink" and re-try with server-side check, to avoid CORS issues
           console.error('Error checking link:', error);
-          link.style.color = 'pink';
-          link.title = 'Error checking link';
-
-          fetch(`/link_check/?url=${encodeURIComponent(link.href)}`)
-              .then(res => res.json())
-              .then(data => {
-                console.log('Link check data:', data);
-                if (data.is_valid) {
-                  link.style.color = 'green';
-                  link.title = 'Link is valid (checked with server)';
-                } else {
-                  link.style.color = 'red';
-                  link.title = `Link is broken: ${data.error}`;
-                }
-              });
+          return false;
         });
-    });
+      if (!ok) {
+        // show "pink" and re-try with server-side check, to avoid CORS issues
+        link.style.color = 'pink';
+        link.title = 'Error checking link';
+
+        await fetch(`/link_check/?url=${encodeURIComponent(link.href)}`)
+          .then(res => res.json())
+          .then(data => {
+            console.log('Link check data:', data);
+            if (data.is_valid) {
+              link.style.color = 'green';
+              link.title = 'Link is valid (checked with server)';
+            } else {
+              link.style.color = 'red';
+              link.title = `Link is broken: ${data.error}`;
+            }
+          });
+        }
+    };
   }
 
   // Fetch the TSV file and display it in a table
