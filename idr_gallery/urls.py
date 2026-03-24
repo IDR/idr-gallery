@@ -22,6 +22,10 @@ urlpatterns = [
     re_path(r'^gallery-api/thumbnails/$', views.api_thumbnails,
             name='idr_gallery_api_thumbnails'),
 
+    # Find annotations by namespace ?ns=idr.gallery.etc 
+    path("gallery_api/annotations/", views.api_annotations,
+         name='idr_gallery_annotations'),
+
     # handle mapr URLs and redirect to search e.g. /mapr/gene/?value=PAX7
     # First URL is matched by mapr itself, so not used while mapr istalled...
     # we want a regex that matches mapr_key but not favicon

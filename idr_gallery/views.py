@@ -14,7 +14,7 @@ from omero.rtypes import wrap, rlong
 from omeroweb.webclient.decorators import login_required, render_response
 from omeroweb.api.decorators import login_required as api_login_required
 from omeroweb.api.api_settings import API_MAX_LIMIT
-from omeroweb.webclient.tree import marshal_annotations
+from omeroweb.webclient.tree import marshal_annotations, _marshal_annotation
 
 import requests
 
@@ -517,6 +517,39 @@ def api_thumbnails(request, conn=None, **kwargs):
         except KeyError:
             logger.error("Thumbnail not available. (img id: %d)" % i)
     return rv
+
+
+@render_response()
+@api_login_required()   # 403 JsonResponse if not logged in
+def api_annotations(request, conn=None, **kwargs):
+    """
+    Return annotations for a given namespace e.g.
+    ?ns=idr.gallery.etc
+    """
+    ns = request.GET.get("ns")
+    if not ns:
+        return HttpResponseBadRequest("Missing 'ns' query parameter")
+    dtypes = request.GET.getlist("type")
+    if len(dtypes) == 0:
+        return HttpResponseBadRequest("Missing e.g. ?type=project")
+
+    query_service = conn.getQueryService()
+    params = omero.sys.ParametersI()
+    params.addString("ns", ns)
+    anns = []
+    for dtype in dtypes:
+        query = """select oal from %sAnnotationLink as oal
+                join fetch oal.details.creationEvent
+                join fetch oal.details.owner
+                left outer join fetch oal.child as ch
+                left outer join fetch oal.parent as pa
+                join fetch ch.details.creationEvent
+                where ch.ns = :ns""" % dtype.capitalize()
+        result = query_service.findAllByQuery(query, params, conn.SERVICE_OPTS)
+        for link in result:
+            if link.child is not None and link.parent is not None:
+                anns.append(_marshal_annotation(conn, link.child, link))
+    return {"annotations": anns}
 
 
 def get_bff_url(request, data_url, fname, ext="csv"):
