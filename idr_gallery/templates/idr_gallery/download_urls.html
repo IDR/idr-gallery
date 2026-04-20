@@ -128,6 +128,10 @@
             let urlPath = clientPath.split(idrId)[1];
             clientPathUrl = urlBase + idrId + urlPath;
           }
+          if (clientPathUrl) {
+            // client_path needs patching for /idr0045-reichmann-zygotespindle/
+            clientPathUrl = clientPathUrl.replace("/idr0045-reichmann/", "/idr0045-reichmann-zygotespindle/");
+          }
 
           cells.forEach((cellText, colIndex) => {
             const td = document.createElement('td');
@@ -136,7 +140,10 @@
             // handle links or 'client_path' column...
             if (cellText.startsWith('http') || (headers[colIndex] === 'client_path' && clientPathUrl)) {
               const link = document.createElement('a');
-              link.href = cellText.startsWith('http') ? cellText : clientPathUrl;
+              // escape the URL to avoid issues with special characters in the client_path
+              link.href = encodeURI(cellText.startsWith('http') ? cellText : clientPathUrl).replace("#", "%23");
+              // fix idr0045 as above
+              cellText = cellText.replace("/idr0045-reichmann/", "/idr0045-reichmann-zygotespindle/");
               link.textContent = cellText;
               link.target = '_blank';
               td.textContent = '';
@@ -144,7 +151,7 @@
             } else if (colIndex == imageIdIndex) {
               // Add link to image viewer at /webclient/img_detail/1884807/
               const link = document.createElement('a');
-              link.href = `/webclient/img_detail/${cellText}/?check_links=true`;
+              link.href = encodeURI(`/webclient/img_detail/${cellText}/?check_links=true`).replace("#", "%23");
               link.textContent = cellText;
               link.target = '_blank';
               td.textContent = '';
