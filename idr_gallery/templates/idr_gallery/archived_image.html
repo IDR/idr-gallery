@@ -149,12 +149,13 @@
           }
           const baseUrl = downloadUrl.split(IDR_ID)[0];    // e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/
           console.log(`Download URL for ${IDR_ID}:`, downloadUrl);
-          if (downloadUrl) {
+          if (downloadUrl && downloadUrl !== DOWNLOAD_URL) {
+            console.log(`Updating download URLs from ${DOWNLOAD_URL} to ${downloadUrl}`);
             // update all ".file_download" links to this download URL
             const fileDownloadLinks =
               document.querySelectorAll(".file_download");
             fileDownloadLinks.forEach((link) => {
-              link.href = link.href.replace(DOWNLOAD_URL, baseUrl);
+              link.href = link.href.replace(DOWNLOAD_URL, downloadUrl);
             });
           }
         } else {

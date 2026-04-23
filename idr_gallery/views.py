@@ -586,7 +586,7 @@ def image_viewer(request, iid, conn=None, **kwargs):
             if idrid in path:
                 # we want path *after* /idr0002-heriche-condensation/
                 # split on idrid handles mismatch like idr0047-neuert-yeastmrna with path idr0047-neuert-yeastmRNA
-                file_path = path.split(idrid_name, 1)[-1]
+                file_path = path.split(idrid, 1)[-1]
                 # remove before first "/" if present
                 file_path = file_path.split("/", 1)[-1] if "/" in file_path else file_path
                 if data_location == "Github":
