@@ -549,13 +549,18 @@ def image_viewer(request, iid, conn=None, **kwargs):
     parents = image.getAncestry()
     idrid_name = parents[-1].name  # e.g. idr0002-heriche-condensation/experimentA
     idrid_name = idrid_name.split("/")[0]  # e.g. idr0002-heriche-condensation
+    idrid = idrid_name.split("-")[0]  # e.g. idr0002
 
-    download_url = None
     bia_ngff_id = None
-    if data_location == "IDR" or data_location == "Github":
-        # then link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
-        # e.g. idr0002-heriche-condensation
-        download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/"
+    github_url = None
+    # link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
+    download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
+    if data_location == "Github":
+        # Link to Github...
+        branch = "main"
+        if idrid in ["idr0079", "idr0052", "idr0065", "idr0075", "idr0100"]:
+            branch = "master"
+        github_url = f"https://github.com/IDR/{idrid_name}/blob/{branch}"
 
     if data_location == "Embassy_S3":
         # "mkngff" data is at https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/idr_ngff_data.html
@@ -577,14 +582,17 @@ def image_viewer(request, iid, conn=None, **kwargs):
     if image.fileset is not None:
         paths = image.getImportedImageFilePaths()
         file_urls = []
-        idrid = idrid_name.split("-")[0]  # e.g. idr0002
         for path in paths["client_paths"]:
             if idrid in path:
-                file_path = path.split(idrid, 1)[-1]
-                # url_prefix = download_url.split(idrid, 1)[0] if download_url else ""
-                # url encode the file path to handle spaces and special characters
-                file_path = urllib.parse.quote(file_path)
-                file_urls.append({"url": f"{download_url}{idrid}{file_path}", "path": file_path})
+                # we want path *after* /idr0002-heriche-condensation/
+                # split on idrid handles mismatch like idr0047-neuert-yeastmrna with path idr0047-neuert-yeastmRNA
+                file_path = path.split(idrid_name, 1)[-1]
+                # remove before first "/" if present
+                file_path = file_path.split("/", 1)[-1] if "/" in file_path else file_path
+                if data_location == "Github":
+                    file_urls.append({"url": f"{github_url}/{urllib.parse.quote(file_path)}", "path": file_path})
+                else:
+                    file_urls.append({"url": f"{download_url}/{urllib.parse.quote(file_path)}", "path": file_path})
             else:
                 file_urls.append({"url": None, "path": path})
         fileset_id = image.fileset.id.val
@@ -593,6 +601,7 @@ def image_viewer(request, iid, conn=None, **kwargs):
             "client_paths": paths["client_paths"],
             "file_urls": file_urls,
         }
+        rsp_json["is_pattern"] = paths["client_paths"][0].endswith("pattern")
 
     return rsp_json
 

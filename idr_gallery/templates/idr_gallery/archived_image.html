@@ -17,46 +17,66 @@
 </style>
 
 <article>
-  <h1>This Image is not viewable</h1>
-  <h2>Image Name: {{ image.name }}</h2>
-  <strong>ID: {{ image.id }}</strong><br />
-  <strong>Study: {{ idr_study }}</strong>
-  <p>
-    Due to infrastructure limitations, this image is not viewable. The IDR only
-    supports the viewing of OME-Zarr images.
-  </p>
+  <div style="display: flex; gap: 20px; flex-direction: row;">
+    <div style="flex: 0 0 96px;">
+      <img src="{% url 'render_thumbnail' image.id %}" alt="Thumbnail for {{ image.name }}" border: 1px solid #ccc; border-radius: 5px;">
+    </div>
+    <div style="flex: 1 1 auto">
+  
+      <h2>Image Name: {{ image.name }}</h2>
+      <strong>ID: {{ image.id }}</strong><br />
+      <strong>Study: {{ idr_study }}</strong>
+      <p>
+        This image is not viewable online. <br/>
+        The IDR only supports the viewing of OME-Zarr images.
+      </p>
+    </div>
+  </div>
 
   {% if fileset %}
-  <h3>Image Files</h3>
-  {% if fileset.file_urls|length == 1 %}
-  <p>There is 1 file associated with this image:</p>
+    <h3>Download Image Files</h3>
+    {% if data_location == "Github" %}
+      <p>
+        This image is defined by a {% if is_pattern %}.pattern{% else %}companion.ome{% endif %} file
+        and sibling .tiff files which are on GitHub (links below).
+        Each .tiff file is a symbolic link to the actual image file in
+        <!-- link is updated from download_urls.tsv info -->
+        <a id="download_url_tsv" target="_blank" class="file_download" href="{{ download_url }}">{{ download_url }}</a>.
+      </p>
+    {% elif fileset.file_urls|length == 1 %}
+      <p>There is 1 file associated with this image. Click to download:</p>
+    {% else %}
+      <p>
+        There are {{ fileset.file_urls|length }} files associated with this image
+        which can be downloaded from the links below. For more download options,
+        including bulk download using Globus or FTP clients, see the
+        <a href="/about/download.html">IDR Data download page</a>.
+      </p>
+    {% endif %}
+
+    <ul>
+      {% for file in fileset.file_urls %}
+      <li>
+        {% if file.url %}
+        <a class="file_download" target="_blank" href="{{ file.url }}">{{ file.path }}</a>
+        {% else %} {{ file.path }} {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
   {% else %}
-  <p>
-    There are {{ fileset.file_urls|length }} files associated with this image
-    which can be downloaded from the links below. For more download options,
-    including bulk download using Globus or FTP clients, see the
-    <a href="/about/download.html">IDR Data download page</a>.
-  </p>
+    <!-- Only expected for some OME-Zarr images (this page won't show for them) -->
+    <p>No associated fileset.</p>
   {% endif %}
-  <ul>
-    {% for file in fileset.file_urls %}
-    <li>
-      {% if file.url %}
-      <a class="file_download" href="{{ file.url }}">{{ file.path }}</a>
-      {% else %} {{ file.path }} {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p>No associated fileset.</p>
-  {% endif %} Extra info (debug)
-  <ul style="background: white">
-    <li>Image Path: {{ img_path }}</li>
-    <li>Data Location: {{ data_location }}</li>
-    <li>Is Zarr?: {{ is_zarr }}</li>
-    <li>Download URL: <a href="{{ download_url }}">{{ download_url }}</a></li>
-    <li>BIA NGFF ID: {{ bia_ngff_id }}</li>
-  </ul>
+  
+  <details><summary>Extra info (debug)</summary>
+    <ul style="background: white">
+      <li>Image Path: {{ img_path }}</li>
+      <li>Data Location: {{ data_location }}</li>
+      <li>Is Zarr?: {{ is_zarr }}</li>
+      <li>Download URL from IDR: <a href="{{ download_url }}">{{ download_url }}</a></li>
+      <li>BIA NGFF ID: {{ bia_ngff_id }}</li>
+    </ul>
+  </details>
 </article>
 
 <script>
@@ -122,6 +142,11 @@
           const downloadUrlIndex = headers.indexOf("download_url");
           // downloadUrl e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0047-neuert-yeastmrna/
           const downloadUrl = cells[downloadUrlIndex];
+          let link = document.getElementById("download_url_tsv");
+          if (link) {
+            link.textContent = downloadUrl;
+            link.href = downloadUrl;
+          }
           const baseUrl = downloadUrl.split(IDR_ID)[0];    // e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/
           console.log(`Download URL for ${IDR_ID}:`, downloadUrl);
           if (downloadUrl) {

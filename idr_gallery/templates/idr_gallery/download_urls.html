@@ -120,7 +120,6 @@
             }
             relativePath = relativePath.split("/").slice(1).join("/");
             clientPathUrl = `https://github.com/IDR/${githubRepo}/blob/${branch}/${relativePath}`;
-            console.log("Client path URL (Github):", clientPath, clientPathUrl);
 
           } else if (downloadUrl.includes(idrId) && clientPath.includes(idrId)) {
             // e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0001-graml-sysgro
