@@ -545,6 +545,10 @@ def image_viewer(request, iid, conn=None, **kwargs):
     # data_location is "IDR" or "Github" or "BIA" or "Embassy_S3"
     img_path, data_location, is_zarr = img_info
 
+    # No externalInfo, but zarr can still be viewed with ZarrReader
+    if is_zarr:
+        return iviewer_index(request, iid, conn=conn, **kwargs)
+
     # get parent Project or Screen to get IDRID name
     parents = image.getAncestry()
     idrid_name = parents[-1].name  # e.g. idr0002-heriche-condensation/experimentA
