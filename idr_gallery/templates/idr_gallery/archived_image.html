@@ -13,6 +13,17 @@
     padding: 15px;
     margin-bottom: 20px;
     border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: solid 1px lightgrey;
+  }
+  a.file_download {
+    color: #03A9F4;
+    text-decoration: none;
+    font-weight: normal;
+    font-size: 14px;
+  }
+  a.file_download:hover {
+    text-decoration: underline;
   }
 </style>
 
@@ -68,7 +79,7 @@
     <p>No associated fileset.</p>
   {% endif %}
   
-  <details><summary>Extra info (debug)</summary>
+  <!-- <details><summary>Extra info (debug)</summary>
     <ul style="background: white">
       <li>Image Path: {{ img_path }}</li>
       <li>Data Location: {{ data_location }}</li>
@@ -76,7 +87,7 @@
       <li>Download URL from IDR: <a href="{{ download_url }}">{{ download_url }}</a></li>
       <li>BIA NGFF ID: {{ bia_ngff_id }}</li>
     </ul>
-  </details>
+  </details> -->
 </article>
 
 <script>
