@@ -65,7 +65,7 @@
   }
 
   // Fetch the TSV file and display it in a table
-  fetch('https://raw.githubusercontent.com/will-moore/idr.openmicroscopy.org/refs/heads/download_urls/_data/download_urls.tsv')
+  fetch('https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv')
     .then(response => response.text())
     .then(data => {
       const lines = data.split('\n');

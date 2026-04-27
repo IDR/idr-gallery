@@ -132,7 +132,7 @@
   document.addEventListener("DOMContentLoaded", function () {
     // Load download URLs from TSV file in GitHub to fix the download URL for this image
     fetch(
-      "https://raw.githubusercontent.com/will-moore/idr.openmicroscopy.org/refs/heads/download_urls/_data/download_urls.tsv",
+      "https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv",
     )
       .then((response) => response.text())
       .then((data) => {
