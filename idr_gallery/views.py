@@ -209,7 +209,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
                                            f"{obj.name}.parquet",
                                            ext="parquet"),
             "empty_study_container": ("experiment" not in obj.name
-                                      and "screen" not in obj.name,)
+                                      and "screen" not in obj.name)
         })
 
     img_objects = []
@@ -519,6 +519,100 @@ def api_thumbnails(request, conn=None, **kwargs):
     return rv
 
 
+@login_required()
+@render_response()
+def image_viewer(request, iid, conn=None, **kwargs):
+    """
+    Check if image is OME-Zarr (externalInfo) before returning iviewer response
+    """
+    image = conn.getObject("Image", iid)
+
+    from omero_iviewer.views import index as iviewer_index
+
+    if image is None:
+        raise Http404("Image with ID %s not found" % iid)
+    
+    # if not image.archived:
+    #     return iviewer_index(request, iid, conn=conn, **kwargs)
+    
+    ext_info = image.getDetails().externalInfo
+    if ext_info is not None:
+        # TODO check for lsid etc
+        return iviewer_index(request, iid, conn=conn, **kwargs)
+
+    # Image is archived and has no ExternalInfo - show other options...
+    img_info = get_image_info(conn, image.id)
+    # data_location is "IDR" or "Github" or "BIA" or "Embassy_S3"
+    img_path, data_location, is_zarr = img_info
+
+    # No externalInfo, but zarr can still be viewed with ZarrReader
+    if is_zarr:
+        return iviewer_index(request, iid, conn=conn, **kwargs)
+
+    # get parent Project or Screen to get IDRID name
+    parents = image.getAncestry()
+    idrid_name = parents[-1].name  # e.g. idr0002-heriche-condensation/experimentA
+    idrid_name = idrid_name.split("/")[0]  # e.g. idr0002-heriche-condensation
+    idrid = idrid_name.split("-")[0]  # e.g. idr0002
+
+    bia_ngff_id = None
+    github_url = None
+    # link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
+    download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
+    if data_location == "Github":
+        # Link to Github...
+        branch = "main"
+        if idrid in ["idr0079", "idr0052", "idr0065", "idr0075", "idr0100"]:
+            branch = "master"
+        github_url = f"https://github.com/IDR/{idrid_name}/blob/{branch}"
+
+    if data_location == "Embassy_S3":
+        # "mkngff" data is at https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/idr_ngff_data.html
+        bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
+
+    rsp_json = {
+        "idr_study": idrid_name,
+        "template": "idr_gallery/archived_image.html",
+        "image": {
+            "id": image.id,
+            "name": image.name,
+        },
+        "img_path": img_path,
+        "data_location": data_location,
+        "is_zarr": is_zarr,
+        "download_url": download_url,
+        "bia_ngff_id": bia_ngff_id,
+    }
+    if image.fileset is not None:
+        paths = image.getImportedImageFilePaths()
+        file_urls = []
+        for path in paths["client_paths"]:
+            if idrid in path:
+                # we want path *after* /idr0002-heriche-condensation/
+                # split on idrid handles mismatch like idr0047-neuert-yeastmrna with path idr0047-neuert-yeastmRNA
+                file_path = path.split(idrid, 1)[-1]
+                # remove before first "/" if present
+                file_path = file_path.split("/", 1)[-1] if "/" in file_path else file_path
+                if data_location == "Github":
+                    file_urls.append({"url": f"{github_url}/{urllib.parse.quote(file_path)}", "path": file_path})
+                else:
+                    file_urls.append({"url": f"{download_url}/{urllib.parse.quote(file_path)}", "path": file_path})
+            else:
+                file_urls.append({"url": None, "path": path})
+        fileset_id = image.fileset.id.val
+        rsp_json["fileset"] = {
+            "id": fileset_id,
+            "client_paths": paths["client_paths"],
+            "file_urls": file_urls,
+        }
+        rsp_json["is_pattern"] = paths["client_paths"][0].endswith("pattern")
+
+    settings_ctx = get_settings_as_context()
+    rsp_json = {**rsp_json, **settings_ctx}
+
+    return rsp_json
+
+
 def get_bff_url(request, data_url, fname, ext="csv"):
     """
     We build config into query params for the BFF app
@@ -533,3 +627,34 @@ def get_bff_url(request, data_url, fname, ext="csv"):
     s = urllib.parse.quote(json.dumps(source))
     bff_url = f"{BFF_URL}?source={s}"
     return bff_url
+
+
+@render_response()
+def download_urls(request, conn=None, **kwargs):
+    """
+    Return a page with download URLs for all studies.
+    """
+    context = {
+        "template": "idr_gallery/download_urls.html",
+        "VERSION": VERSION,
+    }
+    # settings_ctx = get_settings_as_context()
+    # context = {**context, **settings_ctx}
+    return context
+
+
+def link_check(request):
+    """
+    API endpoint to check if a URL is valid, used by download_urls page
+    """
+    url = request.GET.get("url")
+    if url is None:
+        return HttpResponseBadRequest("Missing 'url' parameter")
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=5)
+        is_valid = response.ok
+    except requests.RequestException:
+        is_valid = False
+    status_code = response.status_code if is_valid else None
+    return JsonResponse({"url": url, "is_valid": is_valid,
+                         "status_code": status_code})
