@@ -570,11 +570,6 @@ def image_viewer(request, iid, conn=None, **kwargs):
         # "mkngff" data is at https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/idr_ngff_data.html
         bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
 
-    if settings.BASE_URL is not None:
-        base_url = settings.BASE_URL
-    else:
-        base_url = request.build_absolute_uri(reverse('index'))
-
     rsp_json = {
         "idr_study": idrid_name,
         "template": "idr_gallery/archived_image.html",
@@ -587,7 +582,6 @@ def image_viewer(request, iid, conn=None, **kwargs):
         "is_zarr": is_zarr,
         "download_url": download_url,
         "bia_ngff_id": bia_ngff_id,
-        "base_url": base_url,
     }
     if image.fileset is not None:
         paths = image.getImportedImageFilePaths()
@@ -612,6 +606,9 @@ def image_viewer(request, iid, conn=None, **kwargs):
             "file_urls": file_urls,
         }
         rsp_json["is_pattern"] = paths["client_paths"][0].endswith("pattern")
+
+    settings_ctx = get_settings_as_context()
+    rsp_json = {**rsp_json, **settings_ctx}
 
     return rsp_json
 
