@@ -6,7 +6,7 @@
     margin: 0 auto;
     padding: 20px;
   }
-  ul {
+  .download_list {
     list-style: none;
     background: white;
     margin: 0;
@@ -65,7 +65,7 @@
       </p>
     {% endif %}
 
-    <ul>
+    <ul class="download_list">
       {% for file in fileset.file_urls %}
       <li>
         {% if file.url %}
