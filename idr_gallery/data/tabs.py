@@ -11,9 +11,9 @@ TABS = [
                 "text": "Find a specific IDR study from a publication. View images and Regions of Interest (ROIs) in IDR. Explore study metadata.",
             },
             {
-                "id": "JboK6Kds28U",
+                "id": "sxgfFXgpJ7U",
                 "title": "From gene to phenotypes",
-                "text": "Query images by gene. Explore retrieved images and metadata, including associated phenotypes. View images in context of a plate.",
+                "text": "Query images by gene. Explore retrieved images and metadata, including associated phenotypes. View images in BioFile Finder.",
             },
             {
                 "id": "stF4Q4m5GZg",

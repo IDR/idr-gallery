@@ -181,7 +181,8 @@
             {% if download_url %}
             <p>
                 To download original image files in your browser, you can
-                <a class="downld-link" target="_blank" href="{{ download_url }}">access original data</a>.
+                <!-- NB: This URL is updated dynamically by JavaScript below, using download_urls.tsv -->
+                <a id="download_url" target="_blank" href="{{ download_url }}">access original data</a>.
             </p>
             {% endif %}
 
@@ -224,14 +225,17 @@
 </div>
 
 <script>
+
+    const BASE_URL = "{{ base_url }}";
+    const IDR_ID = "{{ idr_id }}";
+    const MAX_IMAGES = 1000000;
+    const SLOW_WARNING_THRESHOLD = 100000;
+    let url = BASE_URL + "searchengine/api/v1/resources/container_images/?data_source=idr";
+    let fmt = new Intl.NumberFormat();
+
     document.addEventListener("DOMContentLoaded", function() {
         // load image counts...
         // https://idr.openmicroscopy.org/searchengine//api/v1/resources/container_images/?data_source=idr
-        const BASE_URL = "{{ base_url }}";
-        const MAX_IMAGES = 1000000;
-        const SLOW_WARNING_THRESHOLD = 100000;
-        let url = BASE_URL + "searchengine/api/v1/resources/container_images/?data_source=idr";
-        let fmt = new Intl.NumberFormat();
 
         // for each table-download-link (csv download link OR hidden parquet link), HEAD request to get content-length...
         // Then add size in MB after link
@@ -255,6 +259,7 @@
                 });
         });
 
+        // Load image counts for each container from searchengine and add to page
         fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -312,6 +317,35 @@
             .catch(error => {
                 console.error('Error fetching image counts:', error);
             });
-        });
+
+        // Load download URLs from TSV file in GitHub...
+        fetch('https://raw.githubusercontent.com/will-moore/idr.openmicroscopy.org/refs/heads/download_urls/_data/download_urls.tsv')
+            .then(response => response.text())
+            .then(data => {
+                const lines = data.split('\n');
+
+                // Use first line as header to find column names...
+                const headers = lines[0].split('\t');
+
+                const idrIndex = headers.indexOf("idrid");
+
+                // Find the line for this IDR ID
+                const studyLine = lines.find(line => line.split('\t')[idrIndex] === IDR_ID);
+                if (studyLine) {
+                    const cells = studyLine.split('\t');
+                    const downloadUrlIndex = headers.indexOf("download_url");
+                    const downloadUrl = cells[downloadUrlIndex];
+                    if (downloadUrl) {
+                        const downloadLink = document.getElementById("download_url");
+                        if (downloadLink) {
+                            downloadLink.href = downloadUrl;
+                        }
+                    }
+                } else {
+                    console.warn(`No download URL found for ${IDR_ID} in TSV file`);
+                }
+            });
+    });
+
 </script>
 {% endblock %}
