@@ -546,7 +546,8 @@ def image_viewer(request, iid, conn=None, **kwargs):
     img_path, data_location, is_zarr = img_info
 
     # No externalInfo, but zarr can still be viewed with ZarrReader
-    if is_zarr:
+    # idr0138 is the ONLY zarr we can't view (data not on s3)
+    if is_zarr and "idr0138" not in img_path:
         return iviewer_index(request, iid, conn=conn, **kwargs)
 
     # get parent Project or Screen to get IDRID name
