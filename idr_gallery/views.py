@@ -598,6 +598,12 @@ def image_viewer(request, iid, conn=None, **kwargs):
                     file_urls.append({"url": f"{github_url}/{urllib.parse.quote(file_path)}", "path": file_path})
                 else:
                     file_urls.append({"url": f"{download_url}/{urllib.parse.quote(file_path)}", "path": file_path})
+            elif path.startswith("bia-idr/S-BIAD582/"):
+                # for idr0151 path is e.g. bia-idr/S-BIAD582/05_wt_wg488-opa546-cadintron594-OPAprotein647/overlays/6a_05_wt_wg488-opa546-cadintron594-OPAprotein647_014_closeup_overlay.tif
+                # Need to manually map to e.g...
+                # https://ftp.ebi.ac.uk/biostudies/fire/S-BIAD/582/S-BIAD582/Files/05_wt_wg488-opa546-cadintron594-OPAprotein647/overlays/6a_05_wt_wg488-opa546-cadintron594-OPAprotein647_014_closeup_overlay.tif
+                url = path.replace("bia-idr/S-BIAD582/", "https://ftp.ebi.ac.uk/biostudies/fire/S-BIAD/582/S-BIAD582/Files/")
+                file_urls.append({"url": url, "path": path})
             else:
                 file_urls.append({"url": None, "path": path})
         fileset_id = image.fileset.id.val
