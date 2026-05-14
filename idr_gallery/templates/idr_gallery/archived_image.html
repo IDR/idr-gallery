@@ -66,11 +66,9 @@
     {% endif %}
 
     <ul class="download_list">
-      {% for file in fileset.file_urls %}
+      {% for path in fileset.client_paths %}
       <li>
-        {% if file.url %}
-        <a class="file_download" target="_blank" href="{{ file.url }}">{{ file.path }}</a>
-        {% else %} {{ file.path }} {% endif %}
+        <a class="file_download" target="_blank" href="#">{{ path }}</a>
       </li>
       {% endfor %}
     </ul>
@@ -131,9 +129,13 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     // Load download URLs from TSV file in GitHub to fix the download URL for this image
-    fetch(
-      "https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv",
-    )
+    let TABLE_URL = 'https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv';
+    // check query params for ?tsv= to allow testing with a different TSV file
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('tsv')) {
+      TABLE_URL = urlParams.get('tsv');
+    }
+    fetch(TABLE_URL)
       .then((response) => response.text())
       .then((data) => {
         const lines = data.split("\n");
@@ -158,15 +160,20 @@
             link.textContent = downloadUrl;
             link.href = downloadUrl;
           }
-          const baseUrl = downloadUrl.split(IDR_ID)[0];    // e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/
-          console.log(`Download URL for ${IDR_ID}:`, downloadUrl);
-          if (downloadUrl && downloadUrl !== DOWNLOAD_URL) {
-            console.log(`Updating download URLs from ${DOWNLOAD_URL} to ${downloadUrl}`);
+          
+          // Load "replaceThis" and "withThis" from the TSV file to allow replacing the download URL in the links on this page
+          const replaceThisIndex = headers.indexOf("replace_this");
+          const withThisIndex = headers.indexOf("with_this");
+          const replaceThis = cells[replaceThisIndex];
+          const withThis = cells[withThisIndex] || "";
+          console.log(`replaceThis: ${replaceThis}, withThis: ${withThis}`);
+          if (replaceThis) {
+          // if (downloadUrl && downloadUrl !== DOWNLOAD_URL) {
             // update all ".file_download" links to this download URL
             const fileDownloadLinks =
               document.querySelectorAll(".file_download");
             fileDownloadLinks.forEach((link) => {
-              link.href = link.href.replace(DOWNLOAD_URL, downloadUrl);
+              link.href = link.textContent.replace(replaceThis, withThis);
             });
           }
         } else {
