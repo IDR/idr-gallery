@@ -54,6 +54,11 @@
     </div>
   </div>
 
+  <!-- BIA link hidden unless needed -->
+  <div id="bia_link_section" style="margin-top: 20px; display: none;">
+    Data can be downloaded from <a id="bia_link" target="_blank" href=""></a>
+  </div>
+  
   {% if fileset %}
     <h3>Download Image Files</h3>
     {% if data_location == "Github" %}
@@ -82,9 +87,6 @@
       </li>
       {% endfor %}
     </ul>
-  {% else %}
-    <!-- Only expected for some OME-Zarr images (this page won't show for them) -->
-    <p>No associated fileset.</p>
   {% endif %}
 
 </article>
@@ -174,6 +176,19 @@
             fileDownloadLinks.forEach((link) => {
               link.href = link.textContent.replace(replaceThis, withThis);
             });
+          }
+
+          // If there is a "bia_url" column, show the BIA link section with the URL from the TSV file
+          const bia_urlIndex = headers.indexOf("bia_url");
+          if (bia_urlIndex !== -1) {
+            const biaUrl = cells[bia_urlIndex];
+            if (biaUrl) {
+              const biaLinkSection = document.getElementById("bia_link_section");
+              const biaLink = document.getElementById("bia_link");
+              biaLink.href = biaUrl;
+              biaLink.textContent = biaUrl;
+              biaLinkSection.style.display = "block";
+            }
           }
         } else {
           console.warn(`No download URL found for ${IDR_ID} in TSV file`);
