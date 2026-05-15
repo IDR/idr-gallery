@@ -525,6 +525,13 @@ def image_viewer(request, iid, conn=None, **kwargs):
     """
     Check if image is OME-Zarr (externalInfo) before returning iviewer response
     """
+    return image_landing_page(request, iid, zarr_to_iviewer=True, conn=conn, **kwargs)
+
+
+@login_required()
+@render_response()
+def image_landing_page(request, iid, zarr_to_iviewer=False, conn=None, **kwargs):
+
     image = conn.getObject("Image", iid)
 
     from omero_iviewer.views import index as iviewer_index
@@ -532,13 +539,19 @@ def image_viewer(request, iid, conn=None, **kwargs):
     if image is None:
         raise Http404("Image with ID %s not found" % iid)
     
-    # if not image.archived:
-    #     return iviewer_index(request, iid, conn=conn, **kwargs)
-    
-    ext_info = image.getDetails().externalInfo
-    if ext_info is not None:
-        # TODO check for lsid etc
+    # If image has ExternalInfo, it's OME-Zarr and we can go straight to iviewer
+    ext_info = image.getDetails().getExternalInfo()
+    if ext_info and ext_info.lsid and zarr_to_iviewer:
         return iviewer_index(request, iid, conn=conn, **kwargs)
+    
+    ext_info_json = None
+    if ext_info:
+        ext_info_json = {
+            "lsid": ext_info.lsid,
+            "entityType": ext_info.entityType,
+            "entityId": ext_info.entityId,
+            "id": ext_info.id,
+        }
 
     # Image is archived and has no ExternalInfo - show other options...
     img_info = get_image_info(conn, image.id)
@@ -555,15 +568,10 @@ def image_viewer(request, iid, conn=None, **kwargs):
     idrid_name = parents[-1].name  # e.g. idr0002-heriche-condensation/experimentA
     idrid_name = idrid_name.split("/")[0]  # e.g. idr0002-heriche-condensation
 
-    bia_ngff_id = None
-
-    if data_location == "Embassy_S3":
-        # "mkngff" data is at https://livingobjects.ebi.ac.uk/bioimaging-integrator-data/pages/idr_ngff_data.html
-        bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
-
     rsp_json = {
         "idr_study": idrid_name,
-        "template": "idr_gallery/archived_image.html",
+        "ext_info": ext_info_json,
+        "template": "idr_gallery/image.html",
         "image": {
             "id": image.id,
             "name": image.name,
