@@ -54,11 +54,11 @@
         <!-- link is updated from download_urls.tsv info -->
         <a id="download_url_tsv" target="_blank" class="file_download" href="{{ download_url }}">{{ download_url }}</a>.
       </p>
-    {% elif fileset.file_urls|length == 1 %}
+    {% elif fileset.client_paths|length == 1 %}
       <p>There is 1 file associated with this image. Click to download:</p>
     {% else %}
       <p>
-        There are {{ fileset.file_urls|length }} files associated with this image
+        There are {{ fileset.client_paths|length }} files associated with this image
         which can be downloaded from the links below. For more download options,
         including bulk download using Globus or FTP clients, see the
         <a href="/about/download.html">IDR Data download page</a>.
@@ -76,22 +76,12 @@
     <!-- Only expected for some OME-Zarr images (this page won't show for them) -->
     <p>No associated fileset.</p>
   {% endif %}
-  
-  <!-- <details><summary>Extra info (debug)</summary>
-    <ul style="background: white">
-      <li>Image Path: {{ img_path }}</li>
-      <li>Data Location: {{ data_location }}</li>
-      <li>Is Zarr?: {{ is_zarr }}</li>
-      <li>Download URL from IDR: <a href="{{ download_url }}">{{ download_url }}</a></li>
-      <li>BIA NGFF ID: {{ bia_ngff_id }}</li>
-    </ul>
-  </details> -->
+
 </article>
 
 <script>
   const IDR_ID_NAME = "{{ idr_study }}";
   let IDR_ID = IDR_ID_NAME.split("-")[0];
-  let DOWNLOAD_URL = "{{ download_url }}";
 
   function checkLinks() {
     let links = Array.from(document.querySelectorAll("a"));
@@ -168,10 +158,7 @@
           const withThis = cells[withThisIndex] || "";
           console.log(`replaceThis: ${replaceThis}, withThis: ${withThis}`);
           if (replaceThis) {
-          // if (downloadUrl && downloadUrl !== DOWNLOAD_URL) {
-            // update all ".file_download" links to this download URL
-            const fileDownloadLinks =
-              document.querySelectorAll(".file_download");
+            const fileDownloadLinks = document.querySelectorAll(".file_download");
             fileDownloadLinks.forEach((link) => {
               link.href = link.textContent.replace(replaceThis, withThis);
             });

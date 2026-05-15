@@ -241,7 +241,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
 
     if data_location == "Embassy_S3":
-        # "mkngff" data is at
+        # "mkngff" "imported_from" paths start with
         # https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/
         # pages/idr_ngff_data.html
         bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
@@ -554,21 +554,11 @@ def image_viewer(request, iid, conn=None, **kwargs):
     parents = image.getAncestry()
     idrid_name = parents[-1].name  # e.g. idr0002-heriche-condensation/experimentA
     idrid_name = idrid_name.split("/")[0]  # e.g. idr0002-heriche-condensation
-    idrid = idrid_name.split("-")[0]  # e.g. idr0002
 
     bia_ngff_id = None
-    github_url = None
-    # link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
-    download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
-    if data_location == "Github":
-        # Link to Github...
-        branch = "main"
-        if idrid in ["idr0079", "idr0052", "idr0065", "idr0075", "idr0100"]:
-            branch = "master"
-        github_url = f"https://github.com/IDR/{idrid_name}/blob/{branch}"
 
     if data_location == "Embassy_S3":
-        # "mkngff" data is at https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/idr_ngff_data.html
+        # "mkngff" data is at https://livingobjects.ebi.ac.uk/bioimaging-integrator-data/pages/idr_ngff_data.html
         bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
 
     rsp_json = {
@@ -578,11 +568,7 @@ def image_viewer(request, iid, conn=None, **kwargs):
             "id": image.id,
             "name": image.name,
         },
-        "img_path": img_path,
         "data_location": data_location,
-        "is_zarr": is_zarr,
-        "download_url": download_url,
-        "bia_ngff_id": bia_ngff_id,
     }
     if image.fileset is not None:
         paths = image.getImportedImageFilePaths()
