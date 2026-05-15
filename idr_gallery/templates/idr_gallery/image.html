@@ -37,10 +37,20 @@
       <h2>Image Name: {{ image.name }}</h2>
       <strong>ID: {{ image.id }}</strong><br />
       <strong>Study: {{ idr_study }}</strong>
-      <p>
-        This image is not viewable online. <br/>
-        The IDR only supports the viewing of OME-Zarr images.
-      </p>
+
+      {% if ext_info and ext_info.httpUrl %}
+        <p>
+          <!-- NB: IF we change to img_detail/ID/ to loading THIS page for zarrs, then we can't use it here (will always redirect back) -->
+          <a href="{% url 'web_image_viewer' image.id %}">View in Web Image Viewer</a><br/>
+          This image is available as an OME-Zarr file at the following URL:
+          <a href="https://ome.github.io/ome-ngff-validator/?source={{ ext_info.httpUrl }}" target="_blank">{{ ext_info.httpUrl }}</a>
+        </p>
+      {% else %}
+        <p>
+          This image is not viewable online. <br/>
+          The IDR only supports the viewing of OME-Zarr images hosted on S3.
+        </p>
+      {% endif %}
     </div>
   </div>
 

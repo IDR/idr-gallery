@@ -552,6 +552,9 @@ def image_landing_page(request, iid, zarr_to_iviewer=False, conn=None, **kwargs)
             "entityId": ext_info.entityId,
             "id": ext_info.id,
         }
+        if ext_info.lsid and ext_info.lsid.startswith("s3:"):
+            # If ExternalInfo is an S3 URL, we can link to it directly from the landing page
+            ext_info_json["httpUrl"] = ext_info.lsid.replace("s3:", "https:").replace("?anonymous=true", "")
 
     # Image is archived and has no ExternalInfo - show other options...
     img_info = get_image_info(conn, image.id)
