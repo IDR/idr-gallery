@@ -127,8 +127,6 @@
               const link = document.createElement('a');
               // escape the URL to avoid issues with special characters in the client_path
               link.href = encodeURI(cellText.startsWith('http') ? cellText : clientPathUrl).replace("#", "%23");
-              // fix idr0045 as above
-              cellText = cellText.replace("/idr0045-reichmann/", "/idr0045-reichmann-zygotespindle/");
               link.textContent = cellText;
               link.target = '_blank';
               td.textContent = '';
