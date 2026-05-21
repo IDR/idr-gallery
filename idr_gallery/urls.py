@@ -11,6 +11,9 @@ urlpatterns = [
     path("study/<slug:idrid>/json/", views.study_page, {"format": "jsonld"},
          name='idr_gallery_study_jsonld'),
 
+    # image landing page
+    path("image/<int:iid>/", views.image_landing_page, name='idr_gallery_image'),
+
     # All settings as JSON
     re_path(r'^gallery_settings/$', views.gallery_settings),
 
