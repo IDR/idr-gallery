@@ -192,6 +192,11 @@
           }
         } else {
           console.warn(`No download URL found for ${IDR_ID} in TSV file`);
+          // replace links with text
+          const fileDownloadLinks = document.querySelectorAll(".file_download");
+            fileDownloadLinks.forEach((link) => {
+              link.parentElement.textContent = link.textContent;
+            });
         }
 
         // After updating links, check them if ?check_links=1 is in the URL
