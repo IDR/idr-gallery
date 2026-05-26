@@ -132,8 +132,6 @@
   document.addEventListener("DOMContentLoaded", function () {
     // Load download URLs from TSV file in GitHub to fix the download URL for this image
     let TABLE_URL = 'https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv';
-    // TEMP: - till the PR is merged...
-    TABLE_URL = "https://raw.githubusercontent.com/will-moore/idr.openmicroscopy.org/refs/heads/update_download_urls/_data/download_urls.tsv";
     // check query params for ?tsv= to allow testing with a different TSV file
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('tsv')) {
