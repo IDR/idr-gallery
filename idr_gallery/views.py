@@ -561,11 +561,6 @@ def image_landing_page(request, iid, zarr_to_iviewer=False, conn=None, **kwargs)
     # data_location is "IDR" or "Github" or "BIA" or "Embassy_S3"
     img_path, data_location, is_zarr = img_info
 
-    # No externalInfo, but zarr can still be viewed with ZarrReader
-    # idr0138 is the ONLY zarr we can't view (data not on s3)
-    if is_zarr and "idr0138" not in img_path:
-        return iviewer_index(request, iid, conn=conn, **kwargs)
-
     # get parent Project or Screen to get IDRID name
     parents = image.getAncestry()
     idrid_name = parents[-1].name  # e.g. idr0002-heriche-condensation/experimentA
