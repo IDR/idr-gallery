@@ -65,7 +65,13 @@
   }
 
   // Fetch the TSV file and display it in a table
-  fetch('https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv')
+  let TABLE_URL = 'https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv';
+  // check query params for ?tsv= to allow testing with a different TSV file
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('tsv')) {
+    TABLE_URL = urlParams.get('tsv');
+  }
+  fetch(TABLE_URL)
     .then(response => response.text())
     .then(data => {
       const lines = data.split('\n');
@@ -91,6 +97,8 @@
         let idrIdIndex = headers.indexOf('idrid');
         let imageIdIndex = headers.indexOf('image_id');
         let dataLocationIndex = headers.indexOf('data_location');
+        let replaceThisIndex = headers.indexOf('replace_this');
+        let withThisIndex = headers.indexOf('with_this');
 
         // Create table body - update client_path to URL, based on the download_url column...
         const tbody = table.createTBody();
@@ -103,34 +111,12 @@
           let clientPath = cells[clientPathIndex];
           let downloadUrl = cells[downloadUrlIndex];
           let dataLocation = cells[dataLocationIndex];
+          let replaceThis = cells[replaceThisIndex];
+          let withThis = cells[withThisIndex];
           let clientPathUrl;
-          if (dataLocation == "Github") {
-            let branch = "main";
-            // e.g. data/idr-metadata/idr0106-kubota-lunglightsheet/experimentA/companions/Mosaic_Image.companion.ome
-            // links to https://github.com/IDR/idr0106-kubota-lunglightsheet/blob/main/experimentA/companions/Mosaic_Image.companion.ome
-            // uod/idr/metadata/idr0052-walther-condensinmap/experimentA/companions/160719_NCAPD2gfpc272c78_MitoSys2/conc/cell0005_R0001.companion.ome
-            // links to https://github.com/IDR/idr0052-walther-condensinmap/blob/master/experimentA/companions/160719_NCAPD2gfpc272c78_MitoSys2/conc/cell0005_R0001.companion.ome
-            // uod/idr/metadata/idr0079-hartmann-lateralline/companions/experimentA/056F63395C/056F63395C.companion.ome
-            // https://github.com/IDR/idr0079-hartmann-lateralline/blob/master/companions/experimentA/056F63395C/056F63395C.companion.ome
-            let relativePath = clientPath.split("metadata/idr")[1];
-            let githubRepo = "idr" + relativePath.split("/")[0];
-            // some repos use "master" branch, so check for those...
-            if ("idr0079,idr0052,idr0065,idr0075,idr0100".includes(githubRepo.split("-")[0])) {
-              branch = "master";
-            }
-            relativePath = relativePath.split("/").slice(1).join("/");
-            clientPathUrl = `https://github.com/IDR/${githubRepo}/blob/${branch}/${relativePath}`;
-
-          } else if (downloadUrl.includes(idrId) && clientPath.includes(idrId)) {
-            // e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0001-graml-sysgro
-            let urlBase = downloadUrl.split(idrId)[0];
-            let urlPath = clientPath.split(idrId)[1];
-            clientPathUrl = urlBase + idrId + urlPath;
-          }
-          if (clientPathUrl) {
-            // client_path needs patching for /idr0045-reichmann-zygotespindle/
-            clientPathUrl = clientPathUrl.replace("/idr0045-reichmann/", "/idr0045-reichmann-zygotespindle/");
-          }
+          
+          // Simple replace one prefix with another. We rely on the TSV file for correct values...
+          clientPathUrl = clientPath.replace(replaceThis, withThis);
 
           cells.forEach((cellText, colIndex) => {
             const td = document.createElement('td');
@@ -141,8 +127,6 @@
               const link = document.createElement('a');
               // escape the URL to avoid issues with special characters in the client_path
               link.href = encodeURI(cellText.startsWith('http') ? cellText : clientPathUrl).replace("#", "%23");
-              // fix idr0045 as above
-              cellText = cellText.replace("/idr0045-reichmann/", "/idr0045-reichmann-zygotespindle/");
               link.textContent = cellText;
               link.target = '_blank';
               td.textContent = '';

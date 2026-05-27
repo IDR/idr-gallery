@@ -37,13 +37,28 @@
       <h2>Image Name: {{ image.name }}</h2>
       <strong>ID: {{ image.id }}</strong><br />
       <strong>Study: {{ idr_study }}</strong>
-      <p>
-        This image is not viewable online. <br/>
-        The IDR only supports the viewing of OME-Zarr images.
-      </p>
+
+      {% if ext_info and ext_info.httpUrl %}
+        <p>
+          <!-- NB: IF we change to img_detail/ID/ to loading THIS page for zarrs, then we can't use it here (will always redirect back) -->
+          <a href="{% url 'web_image_viewer' image.id %}">View in Web Image Viewer</a><br/>
+          This image is available as an OME-Zarr file at the following URL:
+          <a href="https://ome.github.io/ome-ngff-validator/?source={{ ext_info.httpUrl }}" target="_blank">{{ ext_info.httpUrl }}</a>
+        </p>
+      {% else %}
+        <p>
+          This image is not viewable online. <br/>
+          The IDR only supports the viewing of OME-Zarr images hosted on S3.
+        </p>
+      {% endif %}
     </div>
   </div>
 
+  <!-- BIA link hidden unless needed -->
+  <div id="bia_link_section" style="margin-top: 20px; display: none;">
+    Data can be downloaded from <a id="bia_link" target="_blank" href=""></a>
+  </div>
+  
   {% if fileset %}
     <h3>Download Image Files</h3>
     {% if data_location == "Github" %}
@@ -52,13 +67,13 @@
         and sibling .tiff files which are on GitHub (links below).
         Each .tiff file is a symbolic link to the actual image file in
         <!-- link is updated from download_urls.tsv info -->
-        <a id="download_url_tsv" target="_blank" class="file_download" href="{{ download_url }}">{{ download_url }}</a>.
+        <a id="download_url_tsv" target="_blank" class="file_download" href="#">loading download URL...</a>.
       </p>
-    {% elif fileset.file_urls|length == 1 %}
+    {% elif fileset.client_paths|length == 1 %}
       <p>There is 1 file associated with this image. Click to download:</p>
     {% else %}
       <p>
-        There are {{ fileset.file_urls|length }} files associated with this image
+        There are {{ fileset.client_paths|length }} files associated with this image
         which can be downloaded from the links below. For more download options,
         including bulk download using Globus or FTP clients, see the
         <a href="/about/download.html">IDR Data download page</a>.
@@ -66,34 +81,19 @@
     {% endif %}
 
     <ul class="download_list">
-      {% for file in fileset.file_urls %}
+      {% for path in fileset.client_paths %}
       <li>
-        {% if file.url %}
-        <a class="file_download" target="_blank" href="{{ file.url }}">{{ file.path }}</a>
-        {% else %} {{ file.path }} {% endif %}
+        <a class="file_download" target="_blank" href="#">{{ path }}</a>
       </li>
       {% endfor %}
     </ul>
-  {% else %}
-    <!-- Only expected for some OME-Zarr images (this page won't show for them) -->
-    <p>No associated fileset.</p>
   {% endif %}
-  
-  <!-- <details><summary>Extra info (debug)</summary>
-    <ul style="background: white">
-      <li>Image Path: {{ img_path }}</li>
-      <li>Data Location: {{ data_location }}</li>
-      <li>Is Zarr?: {{ is_zarr }}</li>
-      <li>Download URL from IDR: <a href="{{ download_url }}">{{ download_url }}</a></li>
-      <li>BIA NGFF ID: {{ bia_ngff_id }}</li>
-    </ul>
-  </details> -->
+
 </article>
 
 <script>
   const IDR_ID_NAME = "{{ idr_study }}";
   let IDR_ID = IDR_ID_NAME.split("-")[0];
-  let DOWNLOAD_URL = "{{ download_url }}";
 
   function checkLinks() {
     let links = Array.from(document.querySelectorAll("a"));
@@ -131,9 +131,13 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     // Load download URLs from TSV file in GitHub to fix the download URL for this image
-    fetch(
-      "https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv",
-    )
+    let TABLE_URL = 'https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv';
+    // check query params for ?tsv= to allow testing with a different TSV file
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('tsv')) {
+      TABLE_URL = urlParams.get('tsv');
+    }
+    fetch(TABLE_URL)
       .then((response) => response.text())
       .then((data) => {
         const lines = data.split("\n");
@@ -158,19 +162,39 @@
             link.textContent = downloadUrl;
             link.href = downloadUrl;
           }
-          const baseUrl = downloadUrl.split(IDR_ID)[0];    // e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/
-          console.log(`Download URL for ${IDR_ID}:`, downloadUrl);
-          if (downloadUrl && downloadUrl !== DOWNLOAD_URL) {
-            console.log(`Updating download URLs from ${DOWNLOAD_URL} to ${downloadUrl}`);
-            // update all ".file_download" links to this download URL
-            const fileDownloadLinks =
-              document.querySelectorAll(".file_download");
+          
+          // Load "replaceThis" and "withThis" from the TSV file to allow replacing the download URL in the links on this page
+          const replaceThisIndex = headers.indexOf("replace_this");
+          const withThisIndex = headers.indexOf("with_this");
+          const replaceThis = cells[replaceThisIndex];
+          const withThis = cells[withThisIndex] || "";
+          console.log(`replaceThis: ${replaceThis}, withThis: ${withThis}`);
+          if (replaceThis) {
+            const fileDownloadLinks = document.querySelectorAll(".file_download");
             fileDownloadLinks.forEach((link) => {
-              link.href = link.href.replace(DOWNLOAD_URL, downloadUrl);
+              link.href = link.textContent.replace(replaceThis, withThis);
             });
+          }
+
+          // If there is a "bia_url" column, show the BIA link section with the URL from the TSV file
+          const bia_urlIndex = headers.indexOf("bia_url");
+          if (bia_urlIndex !== -1) {
+            const biaUrl = cells[bia_urlIndex];
+            if (biaUrl) {
+              const biaLinkSection = document.getElementById("bia_link_section");
+              const biaLink = document.getElementById("bia_link");
+              biaLink.href = biaUrl;
+              biaLink.textContent = biaUrl;
+              biaLinkSection.style.display = "block";
+            }
           }
         } else {
           console.warn(`No download URL found for ${IDR_ID} in TSV file`);
+          // replace links with text
+          const fileDownloadLinks = document.querySelectorAll(".file_download");
+            fileDownloadLinks.forEach((link) => {
+              link.parentElement.textContent = link.textContent;
+            });
         }
 
         // After updating links, check them if ?check_links=1 is in the URL

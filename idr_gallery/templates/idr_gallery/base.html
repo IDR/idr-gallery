@@ -22,7 +22,9 @@
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v7.1.0/css/all.css" crossorigin="anonymous">
         <!-- Babel polfill (Symbol, Promise) -->
         <script src="{% static 'idr_gallery/3rdparty/babel-core/browser-polyfill_5.6.15.min.js' %}?_={{VERSION}}"></script>
-        <script src="{% static 'idr_gallery/3rdparty/jquery/jquery-2.2.4.min.js' %}?_={{VERSION}}"></script>
+        <script src="{% static 'idr_gallery/3rdparty/jquery/jquery-3.7.1.min.js' %}?_={{VERSION}}"></script>
+        <!-- Need jquery-migrate to allow jquery-ui and foundation to work with newer jQuery versions -->
+        <script src="{% static 'idr_gallery/3rdparty/jquery/jquery-migrate-3.6.0.min.js' %}?_={{VERSION}}"></script>
         <script src="{% static 'idr_gallery/3rdparty/jquery/jquery-ui-1.12.1.min.js' %}?_={{VERSION}}"></script>
         <link href="{% static 'idr_gallery/3rdparty/jquery/jquery-ui-1.12.1.min.css' %}?_={{VERSION}}" rel="stylesheet">
 

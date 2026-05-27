@@ -241,7 +241,7 @@ def study_page(request, idrid, format="html", conn=None, **kwargs):
         download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
 
     if data_location == "Embassy_S3":
-        # "mkngff" data is at
+        # "mkngff" "imported_from" paths start with
         # https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/
         # pages/idr_ngff_data.html
         bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
@@ -525,6 +525,13 @@ def image_viewer(request, iid, conn=None, **kwargs):
     """
     Check if image is OME-Zarr (externalInfo) before returning iviewer response
     """
+    return image_landing_page(request, iid, zarr_to_iviewer=True, conn=conn, **kwargs)
+
+
+@login_required()
+@render_response()
+def image_landing_page(request, iid, zarr_to_iviewer=False, conn=None, **kwargs):
+
     image = conn.getObject("Image", iid)
 
     from omero_iviewer.views import index as iviewer_index
@@ -532,78 +539,49 @@ def image_viewer(request, iid, conn=None, **kwargs):
     if image is None:
         raise Http404("Image with ID %s not found" % iid)
     
-    # if not image.archived:
-    #     return iviewer_index(request, iid, conn=conn, **kwargs)
-    
-    ext_info = image.getDetails().externalInfo
-    if ext_info is not None:
-        # TODO check for lsid etc
+    # If image has ExternalInfo, it's OME-Zarr and we can go straight to iviewer
+    ext_info = image.getDetails().getExternalInfo()
+    if ext_info and ext_info.lsid and zarr_to_iviewer:
         return iviewer_index(request, iid, conn=conn, **kwargs)
+    
+    ext_info_json = None
+    if ext_info:
+        ext_info_json = {
+            "lsid": ext_info.lsid,
+            "entityType": ext_info.entityType,
+            "entityId": ext_info.entityId,
+            "id": ext_info.id,
+        }
+        if ext_info.lsid and ext_info.lsid.startswith("s3:"):
+            # If ExternalInfo is an S3 URL, we can link to it directly from the landing page
+            ext_info_json["httpUrl"] = ext_info.lsid.replace("s3:", "https:").replace("?anonymous=true", "")
 
     # Image is archived and has no ExternalInfo - show other options...
     img_info = get_image_info(conn, image.id)
     # data_location is "IDR" or "Github" or "BIA" or "Embassy_S3"
     img_path, data_location, is_zarr = img_info
 
-    # No externalInfo, but zarr can still be viewed with ZarrReader
-    if is_zarr:
-        return iviewer_index(request, iid, conn=conn, **kwargs)
-
     # get parent Project or Screen to get IDRID name
     parents = image.getAncestry()
     idrid_name = parents[-1].name  # e.g. idr0002-heriche-condensation/experimentA
     idrid_name = idrid_name.split("/")[0]  # e.g. idr0002-heriche-condensation
-    idrid = idrid_name.split("-")[0]  # e.g. idr0002
-
-    bia_ngff_id = None
-    github_url = None
-    # link to Download e.g. https://ftp.ebi.ac.uk/pub/databases/IDR/idr0002-heriche-condensation/
-    download_url = f"https://ftp.ebi.ac.uk/pub/databases/IDR/{idrid_name}"
-    if data_location == "Github":
-        # Link to Github...
-        branch = "main"
-        if idrid in ["idr0079", "idr0052", "idr0065", "idr0075", "idr0100"]:
-            branch = "master"
-        github_url = f"https://github.com/IDR/{idrid_name}/blob/{branch}"
-
-    if data_location == "Embassy_S3":
-        # "mkngff" data is at https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/pages/idr_ngff_data.html
-        bia_ngff_id = img_path.split(BIA_URL, 1)[-1].split("/", 1)[0]
 
     rsp_json = {
         "idr_study": idrid_name,
-        "template": "idr_gallery/archived_image.html",
+        "ext_info": ext_info_json,
+        "template": "idr_gallery/image.html",
         "image": {
             "id": image.id,
             "name": image.name,
         },
-        "img_path": img_path,
         "data_location": data_location,
-        "is_zarr": is_zarr,
-        "download_url": download_url,
-        "bia_ngff_id": bia_ngff_id,
     }
     if image.fileset is not None:
         paths = image.getImportedImageFilePaths()
-        file_urls = []
-        for path in paths["client_paths"]:
-            if idrid in path:
-                # we want path *after* /idr0002-heriche-condensation/
-                # split on idrid handles mismatch like idr0047-neuert-yeastmrna with path idr0047-neuert-yeastmRNA
-                file_path = path.split(idrid, 1)[-1]
-                # remove before first "/" if present
-                file_path = file_path.split("/", 1)[-1] if "/" in file_path else file_path
-                if data_location == "Github":
-                    file_urls.append({"url": f"{github_url}/{urllib.parse.quote(file_path)}", "path": file_path})
-                else:
-                    file_urls.append({"url": f"{download_url}/{urllib.parse.quote(file_path)}", "path": file_path})
-            else:
-                file_urls.append({"url": None, "path": path})
         fileset_id = image.fileset.id.val
         rsp_json["fileset"] = {
             "id": fileset_id,
             "client_paths": paths["client_paths"],
-            "file_urls": file_urls,
         }
         rsp_json["is_pattern"] = paths["client_paths"][0].endswith("pattern")
 

@@ -1,7 +1,9 @@
 
 import omero
 
-
+# This location is decommissioned, but is still used in IDR import paths, so we need it
+# here to indentify these paths as being from the BIA, even though the data is now at the "livingobjects" URL.
+# Used to parse out the BIA accession from the path, which we can then link to the new "livingobjects" pages.
 BIA_URL = "https://uk1s3.embassy.ebi.ac.uk/bia-integrator-data/"
 
 
