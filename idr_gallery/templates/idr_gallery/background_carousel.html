@@ -84,7 +84,7 @@
 </style>
 
 {% for img in idr_images %}
-<div class="marketing-background {% if not forloop.first %}next{% endif %}" data-src="{{ base_url }}{{ img.src }}"
+<div class="marketing-background {% if not forloop.first %}next{% endif %}" data-src="{% static 'idr_gallery/images/' %}{{ img.src }}"
     style="background-image: url('{{ img.thumbnail }}');" {% if img.light %}data-light="true" {% endif %}></div>
 {% endfor %}
 
