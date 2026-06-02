@@ -302,6 +302,9 @@ class StudiesModel {
     // Load Map Annotations
     await this.loadStudiesMapAnnotations();
 
+    // Load OME-NGFF tag and add 'zarr' attribute to studies with this tag
+    await this.loadZarrTag();
+
     // Generate StudyDescription (removes 'Publication Title' etc from project.Description)
     this.studies.forEach((study) => {
       study["StudyTitle"] = this.getStudyTitle(study);
@@ -330,6 +333,34 @@ class StudiesModel {
         });
       toFind = toFind.slice(batchSize);
     }
+  }
+
+  async loadZarrTag() {
+    // Load OME-NGFF tag and add 'zarr' attribute to studies with this tag.
+    // First load all tags to find the "OME-NGFF" tag and its ID
+    let url = this.base_url + "webclient/api/tags/?orphaned=true&experimenter_id=-1&page=0";
+    let tagJson = await fetch(url).then((response) => response.json());
+    console.log("Found tags", tagJson);
+    let ngffTag = tagJson["tags"].find((tag) => tag.value.includes("OME-NGFF"));
+    if (!ngffTag) {
+      console.warn("No OME-NGFF tag found");
+      return;
+    }
+    let ngffTagId = ngffTag.id;
+    url = this.base_url + `webclient/api/tags/?id=${ngffTagId}`;
+    let zarrStudies = await fetch(url).then((response) => response.json());
+    let zarrStudyIds = new Set();  // set of 'screen-123' or 'project-456' that have the OME-NGFF tag
+    zarrStudies.screens.forEach((screen) => zarrStudyIds.add(`screen-${screen.id}`));
+    zarrStudies.projects.forEach((project) => zarrStudyIds.add(`project-${project.id}`));
+    console.log("zarrStudyIds", zarrStudyIds);
+    // add "zarr" attribute to studies with this tag...
+    this.studies = this.studies.map((study) => {
+      if (zarrStudyIds.has(study.objId)) {
+        console.log("Study with OME-NGFF tag:", study.objId);
+        study.zarr = true;
+      }
+      return study;
+    });
   }
 
   async loadStudiesMapAnnotations() {

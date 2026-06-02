@@ -464,7 +464,19 @@
 <div class="row horizontal" style="position: relative">
   <div class="small-12 medium-12 large-12 columns">
     <div class="panel" style="float: left">
-      <form>
+      <div id="zarrInfo" style="margin-bottom: 10px; color: #333">
+        <h3 style="color: white; padding: 15px; background: red;">Moving to OME-Zarr</h3>
+        <p>
+          The IDR is transitioning to the <a href="https://ngff.openmicroscopy.org/" target="_blank">OME-Zarr</a>
+          format for improved data accessibility and performance. Images in other formats can no longer be viewed on-line
+          in the IDR. We are working to convert all studies to OME-Zarr, but in the meantime non-Zarr images can be download for local viewing.
+          All new studies must be submitted in OME-Zarr format.
+        </p>
+      </div>
+      <div id="zarrStudies" style="margin-bottom: 15px">
+      </div>
+      <div style="clear:both; padding: 7px"></div>
+      <form style="clear:both">
         <label class="switchLabel">Group Studies by type</label>
         <label class="switch" style="margin-right: 20px">
           <input id="groupByType" type="checkbox">
