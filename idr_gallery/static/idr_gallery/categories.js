@@ -115,19 +115,23 @@ function render() {
   let idrIds = [];
 
   let html = "";
+  let zarrHtml = "";
   if (!groupByType) {
-    // Show all studies...
-    html = model.studies
-      .map((study) => {
-        let idrId = study.Name.split("-")[0];
-        // Ignore multiple projects/screens from same study/publication
-        if (idrIds.includes(idrId)) {
-          return "";
-        }
-        idrIds.push(idrId);
-        return studyHtml(study, studyContainers[idrId]);
-      })
-      .join("");
+    // Show all studies... with 'zarr' stuides in a different section at the top
+    zarrHtml = `<div style="color:#666; margin-bottom: 5px">OME-Zarr studies</div>`;
+    model.studies.forEach((study) => {
+      let idrId = study.Name.split("-")[0];
+      // Ignore multiple projects/screens from same study/publication
+      if (idrIds.includes(idrId)) {
+        return "";
+      }
+      idrIds.push(idrId);
+      if (study.zarr) {
+        zarrHtml += studyHtml(study, studyContainers[idrId]);
+      } else {
+        html += studyHtml(study, studyContainers[idrId]);
+      } 
+    });
   } else {
     // group by Categories
     let categories = Object.keys(CATEGORY_QUERIES);
@@ -179,6 +183,7 @@ function render() {
   }
 
   document.getElementById("studies").innerHTML = html;
+  document.getElementById("zarrStudies").innerHTML = zarrHtml;
 
   // tooltips - NB: updated when thumbnails loaded
   tippy(".studyThumb", {
