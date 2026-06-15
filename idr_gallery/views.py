@@ -640,9 +640,10 @@ def image_download_urls(request, iid, conn=None, **kwargs):
 
     if replace_this is not None and with_this is not None:
         rsp_json["download_urls"] = [path.replace(replace_this, with_this) for path in rsp_json.get("client_paths", [])]
-    else:
-        rsp_json["error"] = f"No matching row found for idrid {idrid} in download URLs TSV"
+    elif "error" not in rsp_json:
+        rsp_json["error"] = f"No matching row found for idrid '{idrid}' in download URLs TSV"
 
+    rsp_json["tsv_url"] = download_urls_tsv_url
     return rsp_json
 
 
