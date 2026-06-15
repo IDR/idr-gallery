@@ -591,6 +591,61 @@ def image_landing_page(request, iid, zarr_to_iviewer=False, conn=None, **kwargs)
     return rsp_json
 
 
+@login_required()
+@render_response()
+def image_download_urls(request, iid, conn=None, **kwargs):
+    """
+    Use the download_urls.tsv file to get the download URLs for an image as JSON.
+    """
+
+    image = conn.getObject("Image", iid)
+    if image is None:
+        raise Http404("Image with ID %s not found" % iid)
+
+    rsp_json = {}
+
+    if image.fileset is not None:
+        paths = image.getImportedImageFilePaths()
+        rsp_json["client_paths"] = paths["client_paths"]
+
+    # get parent Project or Screen to get IDRID name
+    parents = image.getAncestry()
+    idrid_name = parents[-1].name  # e.g. idr0002-heriche-condensation/experimentA
+    idrid = idrid_name.split("-")[0]  # e.g. idr0002
+
+    # load tsv from https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv
+    # via requests, find column for 'idrid' and row where this matches idrid
+    download_urls_tsv_url = "https://raw.githubusercontent.com/IDR/idr.openmicroscopy.org/refs/heads/master/_data/download_urls.tsv"
+    # allow override via ?tsv=... for testing
+    download_urls_tsv_url = request.GET.get("tsv", download_urls_tsv_url)
+    replace_this = None
+    with_this = None
+    try:
+        response = requests.get(download_urls_tsv_url, timeout=5)
+        response.raise_for_status()
+        tsv_lines = response.text.splitlines()
+        headers = tsv_lines[0].split("\t")
+        idrid_index = headers.index("idrid")
+        replace_index = headers.index("replace_this")
+        with_index = headers.index("with_this")
+        for line in tsv_lines[1:]:
+            columns = line.split("\t")
+            if columns[idrid_index] == idrid:
+                replace_this = columns[replace_index]
+                with_this = columns[with_index]
+                break
+    except requests.RequestException as e:
+        logger.error(f"Error fetching download URLs TSV: {e}")
+        rsp_json["error"] = f"Could not fetch download URLs TSV from {download_urls_tsv_url}"
+
+    if replace_this is not None and with_this is not None:
+        rsp_json["download_urls"] = [path.replace(replace_this, with_this) for path in rsp_json.get("client_paths", [])]
+    else:
+        rsp_json["error"] = f"No matching row found for idrid {idrid} in download URLs TSV"
+
+    return rsp_json
+
+
 def get_bff_url(request, data_url, fname, ext="csv"):
     """
     We build config into query params for the BFF app
