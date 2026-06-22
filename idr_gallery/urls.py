@@ -14,6 +14,10 @@ urlpatterns = [
     # image landing page
     path("image/<int:iid>/", views.image_landing_page, name='idr_gallery_image'),
 
+    # Get the download URLs for an image
+    path("image/<int:iid>/download_urls/", views.image_download_urls,
+         name='idr_gallery_image_download_urls'),
+
     # All settings as JSON
     re_path(r'^gallery_settings/$', views.gallery_settings),
 
