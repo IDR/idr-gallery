@@ -101,7 +101,6 @@
   }
 
   .switchLabel {
-    font-size: 1.0rem;
     display: inline;
     vertical-align: middle;
     position: relative;
@@ -474,18 +473,19 @@
           All new studies must be submitted in OME-Zarr format.
         </p>
       </div>
-      <div id="zarrStudies" style="margin-bottom: 15px">
-      </div>
-      <div style="clear:both; padding: 7px"></div>
-      <form style="clear:both">
+      <form style="position: absolute; right: 20px;">
         <label class="switchLabel">Group Studies by type</label>
         <label class="switch" style="margin-right: 20px">
           <input id="groupByType" type="checkbox">
           <span class="sliderToggle round"></span>
         </label>
       </form>
+      <div id="zarrStudies" style="margin-bottom: 15px">
+      </div>
+      <div style="clear:both; padding: 7px"></div>
       <div id="studies">
         <!-- Placeholder thumbnails - updated by render() once studies have loaded -->
+        <div style="clear:both; padding: 7px"></div>
         <script>document.write((new Array(100)).fill(`<div class="studyThumb"></div>`).join(""))</script>
       </div>
     </div>

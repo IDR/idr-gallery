@@ -119,6 +119,7 @@ function render() {
   if (!groupByType) {
     // Show all studies... with 'zarr' stuides in a different section at the top
     zarrHtml = `<div style="color:#666; margin-bottom: 5px">OME-Zarr studies</div>`;
+    html = `<div style="color:#666; margin-bottom: 5px">Other studies</div>`;
     model.studies.forEach((study) => {
       let idrId = study.Name.split("-")[0];
       // Ignore multiple projects/screens from same study/publication
